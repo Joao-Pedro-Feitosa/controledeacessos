@@ -1,48 +1,46 @@
-// auth.js — login, logout, sessão, detecção de primeiro login
+// auth.js — login, logout, troca de senha
 
 // ============================================================
-// LOGIN
+// LOGIN — busca usuário no banco e compara senha em texto puro
 // ============================================================
 async function doLogin() {
-  const email = document.getElementById("inp-email").value.trim();
-  const senha  = document.getElementById("inp-pass").value.trim();
-  const errEl  = document.getElementById("login-err");
+  const username = document.getElementById("inp-user").value.trim();
+  const senha    = document.getElementById("inp-pass").value;
+  const errEl    = document.getElementById("login-err");
 
   errEl.textContent = "Verificando...";
 
-  const { data, error } = await db.auth.signInWithPassword({ email, password: senha });
+  const { data: usuario, error } = await db
+    .from("usuarios")
+    .select("id, username, senha, primeiro_login, ativo, papeis(nome)")
+    .eq("username", username)
+    .single();
 
-  if (error) {
-    errEl.textContent = "Email ou senha inválidos.";
+  if (error || !usuario) {
+    errEl.textContent = "Usuário não encontrado.";
+    return;
+  }
+
+  if (!usuario.ativo) {
+    errEl.textContent = "Usuário inativo. Contate o administrador.";
+    return;
+  }
+
+  if (usuario.senha !== senha) {
+    errEl.textContent = "Senha incorreta.";
     return;
   }
 
   errEl.textContent = "";
 
-  // Verifica se é primeiro login (senha temporária)
-  const { data: usuario } = await db
-    .from("usuarios")
-    .select("id, username, primeiro_login, papeis(nome)")
-    .eq("auth_id", data.user.id)
-    .single();
-
-  if (!usuario) {
-    errEl.textContent = "Usuário não encontrado na base de dados.";
-    await db.auth.signOut();
-    return;
-  }
-
-  // Armazena estado global
   window.usuarioAtual = {
     id:           usuario.id,
-    authId:       data.user.id,
     username:     usuario.username,
-    email:        data.user.email,
     papel:        usuario.papeis.nome,
     primeiroLogin: usuario.primeiro_login,
   };
 
-  // Se for primeiro login ou senha temporária → força troca de senha
+  // Primeiro login → força troca de senha
   if (usuario.primeiro_login) {
     mostrarTela("tela-trocar-senha");
     document.getElementById("aviso-primeiro-login").classList.remove("hidden");
@@ -55,69 +53,14 @@ async function doLogin() {
 // ============================================================
 // LOGOUT
 // ============================================================
-async function doLogout() {
-  await db.auth.signOut();
+function doLogout() {
   window.usuarioAtual = null;
   mostrarTela("tela-login");
   document.getElementById("inp-pass").value = "";
 }
 
 // ============================================================
-// DETECÇÃO DE RETORNO POR LINK DE RESET (email "esqueci senha")
-// O Supabase redireciona de volta com a sessão já ativa
-// ============================================================
-async function detectarReset() {
-  // Supabase passa o token no hash da URL após convite ou reset
-  const hash = window.location.hash;
-  const temToken = hash.includes("access_token");
-
-  if (!temToken) return false;
-
-  // Aguarda o Supabase processar o token do hash automaticamente
-  await new Promise(resolve => setTimeout(resolve, 500));
-
-  const { data: { session } } = await db.auth.getSession();
-
-  if (!session) return false;
-
-  const { data: usuario } = await db
-    .from("usuarios")
-    .select("id, username, papeis(nome)")
-    .eq("auth_id", session.user.id)
-    .single();
-
-  if (!usuario) {
-    // Usuário ainda não foi inserido na tabela usuarios
-    mostrarTela("tela-trocar-senha");
-    document.getElementById("aviso-primeiro-login").classList.remove("hidden");
-    // Guarda só o auth temporariamente
-    window.usuarioAtual = {
-      id: null,
-      authId: session.user.id,
-      username: session.user.email,
-      email: session.user.email,
-      papel: null,
-      primeiroLogin: true,
-    };
-    return true;
-  }
-
-  window.usuarioAtual = {
-    id:           usuario.id,
-    authId:       session.user.id,
-    username:     usuario.username,
-    email:        session.user.email,
-    papel:        usuario.papeis.nome,
-    primeiroLogin: true,
-  };
-
-  mostrarTela("tela-trocar-senha");
-  document.getElementById("aviso-primeiro-login").classList.remove("hidden");
-  return true;
-}
-
-// ============================================================
-// FLUXO: TROCAR SENHA (primeiro login ou após reset)
+// TROCAR SENHA — primeiro login ou perfil
 // ============================================================
 async function doTrocarSenha() {
   const nova      = document.getElementById("inp-nova-senha").value;
@@ -135,36 +78,15 @@ async function doTrocarSenha() {
     return;
   }
 
-  okEl.textContent = "Senha alterada com sucesso! Redirecionando...";
+  okEl.textContent = "Senha definida com sucesso! Entrando...";
   setTimeout(() => {
     window.usuarioAtual.primeiroLogin = false;
     entrarNoApp();
-  }, 1500);
+  }, 1200);
 }
 
 // ============================================================
-// FLUXO: ESQUECI MINHA SENHA
-// ============================================================
-async function doEsqueceuSenha() {
-  const email = document.getElementById("inp-email-reset").value.trim();
-  const errEl = document.getElementById("reset-err");
-  const okEl  = document.getElementById("reset-ok");
-
-  errEl.textContent = "";
-  okEl.textContent  = "";
-
-  const resultado = await esqueceuSenha(email);
-
-  if (resultado.erro) {
-    errEl.textContent = resultado.erro;
-    return;
-  }
-
-  okEl.textContent = "Email enviado! Verifique sua caixa de entrada.";
-}
-
-// ============================================================
-// FLUXO: ALTERAR SENHA (usuário já logado, no perfil)
+// ALTERAR SENHA — usuário já logado (página perfil)
 // ============================================================
 async function doAlterarSenhaPerfil() {
   const nova      = document.getElementById("inp-perfil-nova").value;
@@ -183,46 +105,15 @@ async function doAlterarSenhaPerfil() {
   }
 
   okEl.textContent = "Senha alterada com sucesso!";
-  document.getElementById("inp-perfil-nova").value = "";
+  document.getElementById("inp-perfil-nova").value     = "";
   document.getElementById("inp-perfil-confirmar").value = "";
 }
 
 // ============================================================
-// INICIALIZAÇÃO — checa sessão existente ao carregar a página
+// INICIALIZAÇÃO
 // ============================================================
-async function inicializar() {
-  // Verifica se veio por link de reset
-  const foiReset = await detectarReset();
-  if (foiReset) return;
-
-  // Verifica sessão ativa (ex: usuário que não saiu)
-  const { data: { session } } = await db.auth.getSession();
-
-  if (session) {
-    const { data: usuario } = await db
-      .from("usuarios")
-      .select("id, username, primeiro_login, papeis(nome)")
-      .eq("auth_id", session.user.id)
-      .single();
-
-    if (usuario) {
-      window.usuarioAtual = {
-        id:           usuario.id,
-        authId:       session.user.id,
-        username:     usuario.username,
-        email:        session.user.email,
-        papel:        usuario.papeis.nome,
-        primeiroLogin: usuario.primeiro_login,
-      };
-
-      if (usuario.primeiro_login) {
-        mostrarTela("tela-trocar-senha");
-      } else {
-        entrarNoApp();
-      }
-      return;
-    }
-  }
-
+function inicializar() {
   mostrarTela("tela-login");
 }
+
+window.addEventListener("DOMContentLoaded", inicializar);
