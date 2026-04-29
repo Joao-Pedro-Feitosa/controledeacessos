@@ -4,7 +4,7 @@ const RECURSOS = ["funcionarios", "relatorios", "financeiro", "config"];
 const ACOES    = ["criar", "ler", "editar", "deletar"];
 
 // ============================================================
-// ENTRAR NO APP (chamado após login ou troca de senha)
+// ENTRAR NO APP
 // ============================================================
 function entrarNoApp() {
   mostrarTela("tela-app");
@@ -17,8 +17,7 @@ function entrarNoApp() {
 // CONTROLE DE TELAS
 // ============================================================
 function mostrarTela(idTela) {
-  const telas = ["tela-login", "tela-esqueci", "tela-trocar-senha", "tela-app"];
-  telas.forEach(id => {
+  ["tela-login", "tela-trocar-senha", "tela-app"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.add("hidden");
   });
@@ -27,7 +26,7 @@ function mostrarTela(idTela) {
 }
 
 // ============================================================
-// NAVEGAÇÃO ENTRE PÁGINAS DO APP
+// NAVEGAÇÃO ENTRE PÁGINAS
 // ============================================================
 function irPara(recurso) {
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
@@ -36,9 +35,7 @@ function irPara(recurso) {
 
   if (recurso === "minhas-permissoes") {
     carregarMinhasPermissoes();
-  } else if (recurso === "perfil") {
-    // Nada a carregar, já está no HTML
-  } else {
+  } else if (recurso !== "perfil") {
     carregarPaginaRecurso(recurso);
   }
 }
@@ -56,7 +53,7 @@ async function checarPermissao(usuarioId, recursoNome, acao) {
 
   if (!rec) return { permitido: false, origem: "recurso não encontrado" };
 
-  // 1. Verifica ACL individual do usuário
+  // 1. Verifica ACL individual
   const { data: acl } = await db
     .from("acl_permissoes")
     .select("id")
@@ -67,7 +64,7 @@ async function checarPermissao(usuarioId, recursoNome, acao) {
 
   if (acl) return { permitido: true, origem: "ACL (permissão individual)" };
 
-  // 2. Verifica RBAC pelo papel
+  // 2. Verifica RBAC do papel
   const { data: usuario } = await db
     .from("usuarios")
     .select("papel_id")
@@ -88,7 +85,7 @@ async function checarPermissao(usuarioId, recursoNome, acao) {
 }
 
 // ============================================================
-// PÁGINA DE RECURSO — renderiza botões de ação com permissão
+// PÁGINA DE RECURSO — botões com permissão
 // ============================================================
 async function carregarPaginaRecurso(recurso) {
   const container = document.getElementById("acoes-" + recurso);
@@ -114,14 +111,14 @@ async function carregarPaginaRecurso(recurso) {
     btn.disabled    = !permitido;
     btn.title       = permitido ? "Permitido via: " + origem : "Sem permissão";
     if (permitido) {
-      btn.onclick = () => alert("Ação: " + acao + " em " + recurso + "\nOrigem: " + origem);
+      btn.onclick = () => alert("Ação: " + acao + "\nRecurso: " + recurso + "\nOrigem: " + origem);
     }
     container.appendChild(btn);
   });
 }
 
 // ============================================================
-// PÁGINA: MINHAS PERMISSÕES — tabela completa
+// PÁGINA: MINHAS PERMISSÕES
 // ============================================================
 async function carregarMinhasPermissoes() {
   const tbody = document.getElementById("tabela-permissoes");
@@ -146,8 +143,3 @@ async function carregarMinhasPermissoes() {
     tbody.appendChild(tr);
   });
 }
-
-// ============================================================
-// INICIALIZA AO CARREGAR A PÁGINA
-// ============================================================
-window.addEventListener("DOMContentLoaded", inicializar);
