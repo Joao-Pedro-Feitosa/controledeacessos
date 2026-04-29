@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Gestão de Empresa – Controle de Acesso</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: monospace; padding: 20px; max-width: 900px; }
+    table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+    td, th { border: 1px solid #000; padding: 6px 10px; text-align: left; }
+    th { background: #eee; }
+    .hidden { display: none; }
+    .ok  { color: green; }
+    .err { color: red; }
+    input, button { font-family: monospace; padding: 4px 8px; margin: 4px 2px; }
+    h2 { border-bottom: 1px solid #000; padding-bottom: 4px; margin-top: 24px; }
+    .box { border: 1px solid #ccc; padding: 12px; margin: 10px 0; }
+    .nav { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
+    .nav button { padding: 6px 14px; }
+    .page { display: none; }
+    .page.active { display: block; }
+    #msg { color: red; margin: 6px 0; min-height: 20px; }
+  </style>
+</head>
+<body>
+
+<!-- ============================= LOGIN ============================= -->
+<div id="login-screen">
+  <h1>Sistema de Gestão de Empresa</h1>
+  <div class="box">
+    <h2>Login</h2>
+    <label>Usuário: <input id="inp-user" type="text" placeholder="username"></label><br>
+    <label>Senha:   <input id="inp-pass" type="password" placeholder="senha"></label><br>
+    <button onclick="doLogin()">Entrar</button>
+    <p id="login-err" class="err"></p>
+  </div>
+</div>
+
+<!-- ============================= APP ============================= -->
+<div id="app-screen" class="hidden">
+  <h1>Sistema de Gestão</h1>
+  <p>
+    Logado como: <b id="lbl-user"></b> | Papel: <b id="lbl-papel"></b>
+    <button onclick="doLogout()" style="margin-left:16px">Sair</button>
+  </p>
+
+  <!-- Navegação -->
+  <div class="nav">
+    <button onclick="irPara('funcionarios')">👥 Funcionários</button>
+    <button onclick="irPara('relatorios')">📄 Relatórios</button>
+    <button onclick="irPara('financeiro')">💰 Financeiro</button>
+    <button onclick="irPara('config')">⚙️ Config</button>
+    <button onclick="irPara('minhas-permissoes')">🔑 Minhas Permissões</button>
+  </div>
+
+  <!-- Página: Funcionários -->
+  <div id="page-funcionarios" class="page box">
+    <h2>Funcionários</h2>
+    <div id="acoes-funcionarios"></div>
+  </div>
+
+  <!-- Página: Relatórios -->
+  <div id="page-relatorios" class="page box">
+    <h2>Relatórios</h2>
+    <div id="acoes-relatorios"></div>
+  </div>
+
+  <!-- Página: Financeiro -->
+  <div id="page-financeiro" class="page box">
+    <h2>Financeiro</h2>
+    <div id="acoes-financeiro"></div>
+  </div>
+
+  <!-- Página: Config -->
+  <div id="page-config" class="page box">
+    <h2>Configurações</h2>
+    <div id="acoes-config"></div>
+  </div>
+
+  <!-- Página: Minhas Permissões -->
+  <div id="page-minhas-permissoes" class="page box">
+    <h2>Minhas Permissões</h2>
+    <p id="msg"></p>
+    <table>
+      <thead>
+        <tr><th>Recurso</th><th>Ação</th><th>Origem</th><th>Permitido?</th></tr>
+      </thead>
+      <tbody id="tabela-permissoes"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIGURAÇÃO SUPABASE
+// ============================================================
+const SUPABASE_URL = "https://eqgyvbqckzgquqabqxvk.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxZ3l2YnFja3pncXVxYWJxeHZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0OTQ1NjIsImV4cCI6MjA5MzA3MDU2Mn0.txsrYjLO9CweKXFiVG-hX2amv5yTc8ymcQm8LNH7voA";
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ============================================================
+// ESTADO GLOBAL
+// ============================================================
+let usuarioAtual = null;  // { id, username, papel }
+
+const RECURSOS = ["funcionarios", "relatorios", "financeiro", "config"];
+const ACOES    = ["criar", "ler", "editar", "deletar"];
+
+// ============================================================
+// LOGIN
+// ============================================================
+async function doLogin() {
+  const username = document.getElementById("inp-user").value.trim();
+  const senha    = document.getElementById("inp-pass").value.trim();
+  const errEl    = document.getElementById("login-err");
+  errEl.textContent = "Verificando...";
+
+  // Busca usuário pelo username
+  const { data: users, error } = await db
+    .from("usuarios")
+    .select("id, username, senha_hash, ativo, papeis(nome)")
+    .eq("username", username)
+    .eq("ativo", true)
+    .single();
+
+  if (error || !users) {
+    errEl.textContent = "Usuário não encontrado.";
+    return;
+  }
+
+  // Verifica senha — aqui usamos comparação simples para exemplo.
+  // Em produção: use bcrypt no backend ou Supabase Auth.
+  const senhaOk = await verificarSenha(senha, users.senha_hash);
+  if (!senhaOk) {
+    errEl.textContent = "Senha incorreta.";
+    return;
+  }
+
+  usuarioAtual = {
+    id:       users.id,
+    username: users.username,
+    papel:    users.papeis.nome,
+  };
+
+  errEl.textContent = "";
+  document.getElementById("login-screen").classList.add("hidden");
+  document.getElementById("app-screen").classList.remove("hidden");
+  document.getElementById("lbl-user").textContent  = usuarioAtual.username;
+  document.getElementById("lbl-papel").textContent = usuarioAtual.papel;
+
+  irPara("minhas-permissoes");
+}
+
+// Verificação de senha simples (texto puro para protótipo)
+// Para produção: use Supabase Auth ou bcrypt no servidor
+async function verificarSenha(digitada, hash) {
+  // Se seu hash no banco for texto puro (para protótipo):
+  return digitada === hash;
+
+  // Para bcrypt real, você precisaria de um backend/edge function.
+}
+
+function doLogout() {
+  usuarioAtual = null;
+  document.getElementById("app-screen").classList.add("hidden");
+  document.getElementById("login-screen").classList.remove("hidden");
+  document.getElementById("inp-pass").value = "";
+}
+
+// ============================================================
+// NAVEGAÇÃO E CONTROLE DE ACESSO NAS PÁGINAS
+// ============================================================
+async function irPara(recurso) {
+  // Esconde todas as páginas
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+
+  const pagina = document.getElementById(`page-${recurso}`);
+  if (!pagina) return;
+  pagina.classList.add("active");
+
+  if (recurso === "minhas-permissoes") {
+    await carregarMinhasPermissoes();
+    return;
+  }
+
+  // Renderiza botões de ação para o recurso
+  const container = document.getElementById(`acoes-${recurso}`);
+  container.innerHTML = "Verificando permissões...";
+
+  const botoes = [];
+  for (const acao of ACOES) {
+    const { permitido, origem } = await checarPermissao(usuarioAtual.id, recurso, acao);
+    botoes.push({ acao, permitido, origem });
+  }
+
+  container.innerHTML = "";
+  botoes.forEach(({ acao, permitido, origem }) => {
+    const btn = document.createElement("button");
+    btn.textContent = acao.charAt(0).toUpperCase() + acao.slice(1);
+    btn.disabled = !permitido;
+    btn.title = permitido ? `Permitido via: ${origem}` : "Sem permissão";
+    btn.onclick = () => alert(`Ação: ${acao} em ${recurso}\nOrigem da permissão: ${origem}`);
+    container.appendChild(btn);
+  });
+
+  // Aviso se tudo negado
+  if (botoes.every(b => !b.permitido)) {
+    container.innerHTML += "<p class='err'>Você não tem acesso a este recurso.</p>";
+  }
+}
+
+// ============================================================
+// VERIFICAÇÃO HÍBRIDA: ACL → RBAC
+// ============================================================
+async function checarPermissao(usuarioId, recursoNome, acao) {
+  // Busca id do recurso
+  const { data: rec } = await db
+    .from("recursos")
+    .select("id")
+    .eq("nome", recursoNome)
+    .single();
+
+  if (!rec) return { permitido: false, origem: "recurso não encontrado" };
+
+  // 1. Verifica ACL individual
+  const { data: acl } = await db
+    .from("acl_permissoes")
+    .select("id")
+    .eq("usuario_id", usuarioId)
+    .eq("recurso_id", rec.id)
+    .eq("acao", acao)
+    .maybeSingle();
+
+  if (acl) return { permitido: true, origem: "ACL (permissão individual)" };
+
+  // 2. Verifica RBAC pelo papel
+  const { data: usuario } = await db
+    .from("usuarios")
+    .select("papel_id")
+    .eq("id", usuarioId)
+    .single();
+
+  const { data: rbac } = await db
+    .from("rbac_permissoes")
+    .select("id")
+    .eq("papel_id", usuario.papel_id)
+    .eq("recurso_id", rec.id)
+    .eq("acao", acao)
+    .maybeSingle();
+
+  if (rbac) return { permitido: true, origem: `RBAC (papel: ${usuarioAtual.papel})` };
+
+  return { permitido: false, origem: "Negado" };
+}
+
+// ============================================================
+// PÁGINA: MINHAS PERMISSÕES (tabela completa)
+// ============================================================
+async function carregarMinhasPermissoes() {
+  const msg   = document.getElementById("msg");
+  const tbody = document.getElementById("tabela-permissoes");
+  msg.textContent = "Carregando...";
+  tbody.innerHTML = "";
+
+  for (const recurso of RECURSOS) {
+    for (const acao of ACOES) {
+      const { permitido, origem } = await checarPermissao(usuarioAtual.id, recurso, acao);
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${recurso}</td>
+        <td>${acao}</td>
+        <td>${origem}</td>
+        <td class="${permitido ? 'ok' : 'err'}">${permitido ? "✔ Sim" : "✘ Não"}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+
+  msg.textContent = "";
+}
+</script>
+</body>
+</html>
