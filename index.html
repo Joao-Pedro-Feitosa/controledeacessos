@@ -11,15 +11,15 @@
     .hidden { display: none; }
     .ok  { color: green; }
     .err { color: red; }
-    .info { color: #555; font-style: italic; }
-    input, button, select { font-family: monospace; padding: 4px 8px; margin: 4px 2px; }
+    input, button { font-family: monospace; padding: 4px 8px; margin: 4px 2px; }
     h2 { border-bottom: 1px solid #000; padding-bottom: 4px; margin-top: 20px; }
     .box { border: 1px solid #ccc; padding: 14px; margin: 10px 0; }
     .nav { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0; }
     .page { display: none; }
     .page.active { display: block; }
-    #criterios-senha span { display: block; font-size: 0.9em; margin: 2px 0; }
+    #criterios-senha span, #criterios-perfil span { display: block; font-size: 0.9em; margin: 2px 0; }
     .aviso { background: #fff3cd; border: 1px solid #ffc107; padding: 10px; margin-bottom: 10px; }
+    small { color: #555; }
   </style>
 </head>
 <body>
@@ -31,55 +31,35 @@
   <h1>Sistema de Gestão de Empresa</h1>
   <div class="box">
     <h2>Login</h2>
-    <label>Email:<br>
-      <input id="inp-email" type="email" placeholder="seu@email.com" style="width:260px">
+    <label>Usuário:<br>
+      <input id="inp-user" type="text" placeholder="username" style="width:240px">
     </label><br>
     <label>Senha:<br>
-      <input id="inp-pass" type="password" placeholder="senha" style="width:260px">
+      <input id="inp-pass" type="password" placeholder="senha" style="width:240px">
     </label><br>
     <button onclick="doLogin()">Entrar</button>
     <p id="login-err" class="err"></p>
     <hr>
-    <a href="#" onclick="mostrarTela('tela-esqueci'); return false;">Esqueci minha senha</a>
+    <small>
+      Usuários de exemplo:<br>
+      admin / Admin@123456<br>
+      gerente / Gerente@123456<br>
+      funcionario / Func@1234567<br>
+      joao / Joao@123456789 (funcionario com ACL extra)
+    </small>
   </div>
 </div>
 
 
 <!-- =====================================================
-     TELA 2: ESQUECI MINHA SENHA
-====================================================== -->
-<div id="tela-esqueci" class="hidden">
-  <h1>Recuperar Senha</h1>
-  <div class="box">
-    <p>Informe seu email. Você receberá um link para redefinir sua senha.</p>
-    <label>Email:<br>
-      <input id="inp-email-reset" type="email" placeholder="seu@email.com" style="width:260px">
-    </label><br>
-    <button onclick="doEsqueceuSenha()">Enviar link</button>
-    <p id="reset-err" class="err"></p>
-    <p id="reset-ok" class="ok"></p>
-    <br>
-    <a href="#" onclick="mostrarTela('tela-login'); return false;">← Voltar ao login</a>
-  </div>
-</div>
-
-
-<!-- =====================================================
-     TELA 3: TROCAR SENHA (primeiro login ou após reset)
+     TELA 2: TROCAR SENHA (primeiro login)
 ====================================================== -->
 <div id="tela-trocar-senha" class="hidden">
   <h1>Definir Nova Senha</h1>
 
-  <!-- Aviso: primeiro login -->
   <div id="aviso-primeiro-login" class="aviso hidden">
     <b>⚠ Primeiro acesso detectado.</b><br>
-    Você está usando uma senha temporária. Por segurança, defina uma senha permanente antes de continuar.
-  </div>
-
-  <!-- Aviso: retorno por link de reset -->
-  <div id="aviso-reset" class="aviso hidden">
-    <b>⚠ Redefinição de senha.</b><br>
-    Você acessou via link de recuperação. Defina sua nova senha abaixo.
+    Por segurança, defina uma senha permanente antes de continuar.
   </div>
 
   <div class="box">
@@ -87,11 +67,9 @@
       <input id="inp-nova-senha" type="password" style="width:260px"
              oninput="renderizarCriterios(this.value, 'criterios-senha')">
     </label><br>
+    <div id="criterios-senha" style="margin: 6px 0 10px 0; line-height: 1.8;"></div>
 
-    <!-- Critérios em tempo real -->
-    <div id="criterios-senha" style="margin: 6px 0 10px 0; line-height: 1.6;"></div>
-
-    <label>Confirmar senha:<br>
+    <label>Confirmar nova senha:<br>
       <input id="inp-confirmar-senha" type="password" style="width:260px">
     </label><br>
 
@@ -103,7 +81,7 @@
 
 
 <!-- =====================================================
-     TELA 4: APP PRINCIPAL
+     TELA 3: APP PRINCIPAL
 ====================================================== -->
 <div id="tela-app" class="hidden">
   <h1>Sistema de Gestão de Empresa</h1>
@@ -112,7 +90,6 @@
     <button onclick="doLogout()" style="margin-left:16px">Sair</button>
   </p>
 
-  <!-- Navegação -->
   <div class="nav">
     <button onclick="irPara('funcionarios')">👥 Funcionários</button>
     <button onclick="irPara('relatorios')">📄 Relatórios</button>
@@ -122,31 +99,31 @@
     <button onclick="irPara('perfil')">👤 Alterar Senha</button>
   </div>
 
-  <!-- Página: Funcionários -->
+  <!-- Funcionários -->
   <div id="page-funcionarios" class="page box">
     <h2>Funcionários</h2>
     <div id="acoes-funcionarios"></div>
   </div>
 
-  <!-- Página: Relatórios -->
+  <!-- Relatórios -->
   <div id="page-relatorios" class="page box">
     <h2>Relatórios</h2>
     <div id="acoes-relatorios"></div>
   </div>
 
-  <!-- Página: Financeiro -->
+  <!-- Financeiro -->
   <div id="page-financeiro" class="page box">
     <h2>Financeiro</h2>
     <div id="acoes-financeiro"></div>
   </div>
 
-  <!-- Página: Config -->
+  <!-- Config -->
   <div id="page-config" class="page box">
     <h2>Configurações</h2>
     <div id="acoes-config"></div>
   </div>
 
-  <!-- Página: Minhas Permissões -->
+  <!-- Minhas Permissões -->
   <div id="page-minhas-permissoes" class="page box">
     <h2>Minhas Permissões</h2>
     <table>
@@ -157,14 +134,14 @@
     </table>
   </div>
 
-  <!-- Página: Perfil / Alterar Senha -->
+  <!-- Alterar Senha -->
   <div id="page-perfil" class="page box">
     <h2>Alterar Senha</h2>
     <label>Nova senha:<br>
       <input id="inp-perfil-nova" type="password" style="width:260px"
              oninput="renderizarCriterios(this.value, 'criterios-perfil')">
     </label><br>
-    <div id="criterios-perfil" style="margin: 6px 0 10px 0; line-height: 1.6;"></div>
+    <div id="criterios-perfil" style="margin: 6px 0 10px 0; line-height: 1.8;"></div>
     <label>Confirmar nova senha:<br>
       <input id="inp-perfil-confirmar" type="password" style="width:260px">
     </label><br>
