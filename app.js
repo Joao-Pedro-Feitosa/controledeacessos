@@ -28,7 +28,7 @@ async function filtrarMenuNavegacao() {
 
     // Oculta o botão do menu se não tiver nenhuma permissão
     const btn = document.getElementById("nav-" + recurso);
-    if (btn) btn.classList.toggle("hidden", !temAlguma);
+    if (btn && temAlguma) btn.classList.remove("hidden");
   }
 }
 
