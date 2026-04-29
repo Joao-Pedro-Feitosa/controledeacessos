@@ -85,34 +85,34 @@ async function checarPermissao(usuarioId, recursoNome, acao) {
 }
 
 // ============================================================
-// PÁGINA DE RECURSO — botões com permissão
+// PÁGINA DE RECURSO — só renderiza ações permitidas (oculta o resto)
 // ============================================================
 async function carregarPaginaRecurso(recurso) {
   const container = document.getElementById("acoes-" + recurso);
   if (!container) return;
   container.innerHTML = "Verificando permissões...";
 
-  const botoes = [];
+  // Coleta só as ações permitidas
+  const permitidas = [];
   for (const acao of ACOES) {
     const { permitido, origem } = await checarPermissao(window.usuarioAtual.id, recurso, acao);
-    botoes.push({ acao, permitido, origem });
+    if (permitido) permitidas.push({ acao, origem });
   }
 
   container.innerHTML = "";
 
-  if (botoes.every(b => !b.permitido)) {
+  // Se não tem nenhuma ação permitida, esconde a página inteira
+  if (permitidas.length === 0) {
     container.innerHTML = "<p class='err'>Você não tem acesso a este recurso.</p>";
     return;
   }
 
-  botoes.forEach(({ acao, permitido, origem }) => {
+  // Renderiza só o que é permitido — sem rastro do que foi ocultado
+  permitidas.forEach(({ acao, origem }) => {
     const btn = document.createElement("button");
     btn.textContent = acao.charAt(0).toUpperCase() + acao.slice(1);
-    btn.disabled    = !permitido;
-    btn.title       = permitido ? "Permitido via: " + origem : "Sem permissão";
-    if (permitido) {
-      btn.onclick = () => alert("Ação: " + acao + "\nRecurso: " + recurso + "\nOrigem: " + origem);
-    }
+    btn.title       = "Permitido via: " + origem;
+    btn.onclick     = () => alert("Ação: " + acao + "\nRecurso: " + recurso + "\nOrigem: " + origem);
     container.appendChild(btn);
   });
 }
