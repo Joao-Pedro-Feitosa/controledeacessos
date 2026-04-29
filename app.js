@@ -6,11 +6,30 @@ const ACOES    = ["criar", "ler", "editar", "deletar"];
 // ============================================================
 // ENTRAR NO APP
 // ============================================================
-function entrarNoApp() {
+async function entrarNoApp() {
   mostrarTela("tela-app");
   document.getElementById("lbl-user").textContent  = window.usuarioAtual.username;
   document.getElementById("lbl-papel").textContent = window.usuarioAtual.papel;
+  await filtrarMenuNavegacao();
   irPara("minhas-permissoes");
+}
+
+// ============================================================
+// FILTRA MENU — oculta botões de recursos sem nenhuma permissão
+// ============================================================
+async function filtrarMenuNavegacao() {
+  for (const recurso of RECURSOS) {
+    // Checa se tem ao menos UMA ação permitida neste recurso
+    let temAlguma = false;
+    for (const acao of ACOES) {
+      const { permitido } = await checarPermissao(window.usuarioAtual.id, recurso, acao);
+      if (permitido) { temAlguma = true; break; }
+    }
+
+    // Oculta o botão do menu se não tiver nenhuma permissão
+    const btn = document.getElementById("nav-" + recurso);
+    if (btn) btn.classList.toggle("hidden", !temAlguma);
+  }
 }
 
 // ============================================================
@@ -44,7 +63,6 @@ function irPara(recurso) {
 // VERIFICAÇÃO HÍBRIDA: ACL → RBAC
 // ============================================================
 async function checarPermissao(usuarioId, recursoNome, acao) {
-  // Busca id do recurso
   const { data: rec } = await db
     .from("recursos")
     .select("id")
@@ -92,7 +110,6 @@ async function carregarPaginaRecurso(recurso) {
   if (!container) return;
   container.innerHTML = "Verificando permissões...";
 
-  // Coleta só as ações permitidas
   const permitidas = [];
   for (const acao of ACOES) {
     const { permitido, origem } = await checarPermissao(window.usuarioAtual.id, recurso, acao);
@@ -101,13 +118,11 @@ async function carregarPaginaRecurso(recurso) {
 
   container.innerHTML = "";
 
-  // Se não tem nenhuma ação permitida, esconde a página inteira
   if (permitidas.length === 0) {
     container.innerHTML = "<p class='err'>Você não tem acesso a este recurso.</p>";
     return;
   }
 
-  // Renderiza só o que é permitido — sem rastro do que foi ocultado
   permitidas.forEach(({ acao, origem }) => {
     const btn = document.createElement("button");
     btn.textContent = acao.charAt(0).toUpperCase() + acao.slice(1);
