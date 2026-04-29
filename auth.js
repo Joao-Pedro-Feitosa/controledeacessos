@@ -67,32 +67,53 @@ async function doLogout() {
 // O Supabase redireciona de volta com a sessão já ativa
 // ============================================================
 async function detectarReset() {
+  // Supabase passa o token no hash da URL após convite ou reset
+  const hash = window.location.hash;
+  const temToken = hash.includes("access_token");
+
+  if (!temToken) return false;
+
+  // Aguarda o Supabase processar o token do hash automaticamente
+  await new Promise(resolve => setTimeout(resolve, 500));
+
   const { data: { session } } = await db.auth.getSession();
 
-  // Se há sessão ativa E a URL indica reset
-  const urlParams = new URLSearchParams(window.location.search);
-  if (session && urlParams.get("modo") === "reset") {
-    const { data: usuario } = await db
-      .from("usuarios")
-      .select("id, username, papeis(nome)")
-      .eq("auth_id", session.user.id)
-      .single();
+  if (!session) return false;
 
+  const { data: usuario } = await db
+    .from("usuarios")
+    .select("id, username, papeis(nome)")
+    .eq("auth_id", session.user.id)
+    .single();
+
+  if (!usuario) {
+    // Usuário ainda não foi inserido na tabela usuarios
+    mostrarTela("tela-trocar-senha");
+    document.getElementById("aviso-primeiro-login").classList.remove("hidden");
+    // Guarda só o auth temporariamente
     window.usuarioAtual = {
-      id:       usuario.id,
-      authId:   session.user.id,
-      username: usuario.username,
-      email:    session.user.email,
-      papel:    usuario.papeis.nome,
+      id: null,
+      authId: session.user.id,
+      username: session.user.email,
+      email: session.user.email,
+      papel: null,
       primeiroLogin: true,
     };
-
-    mostrarTela("tela-trocar-senha");
-    document.getElementById("aviso-reset").classList.remove("hidden");
     return true;
   }
 
-  return false;
+  window.usuarioAtual = {
+    id:           usuario.id,
+    authId:       session.user.id,
+    username:     usuario.username,
+    email:        session.user.email,
+    papel:        usuario.papeis.nome,
+    primeiroLogin: true,
+  };
+
+  mostrarTela("tela-trocar-senha");
+  document.getElementById("aviso-primeiro-login").classList.remove("hidden");
+  return true;
 }
 
 // ============================================================
