@@ -1,0 +1,90 @@
+-- ============================================================
+-- SCHEMA: Controle de Acesso Híbrido (RBAC + ACL)
+-- Sistema de Gestão de Empresa — versão protótipo
+-- Senha em texto puro para fins de demonstração
+-- ============================================================
+
+-- 1. PAPÉIS (tabela estática)
+CREATE TABLE papeis (
+  id   SERIAL PRIMARY KEY,
+  nome VARCHAR(50) UNIQUE NOT NULL
+);
+
+INSERT INTO papeis (nome) VALUES
+  ('admin'),
+  ('gerente'),
+  ('funcionario');
+
+
+-- 2. RECURSOS
+CREATE TABLE recursos (
+  id   SERIAL PRIMARY KEY,
+  nome VARCHAR(50) UNIQUE NOT NULL
+);
+
+INSERT INTO recursos (nome) VALUES
+  ('funcionarios'),
+  ('relatorios'),
+  ('financeiro'),
+  ('config');
+
+
+-- 3. USUÁRIOS (senha em texto puro — só protótipo)
+CREATE TABLE usuarios (
+  id             SERIAL PRIMARY KEY,
+  username       VARCHAR(50) UNIQUE NOT NULL,
+  senha          TEXT NOT NULL,
+  papel_id       INTEGER NOT NULL REFERENCES papeis(id),
+  primeiro_login BOOLEAN DEFAULT FALSE,
+  ativo          BOOLEAN DEFAULT TRUE,
+  criado_em      TIMESTAMP DEFAULT NOW()
+);
+
+INSERT INTO usuarios (username, senha, papel_id, primeiro_login) VALUES
+  ('admin',      'Admin@123456',       1, FALSE),
+  ('gerente',    'Gerente@123456',     2, FALSE),
+  ('funcionario','Func@1234567',       3, FALSE),
+  ('joao',       'Joao@123456789',     3, FALSE);
+-- joao é funcionario mas terá ACL extra (ver abaixo)
+
+
+-- 4. PERMISSÕES POR PAPEL — RBAC
+CREATE TABLE rbac_permissoes (
+  id          SERIAL PRIMARY KEY,
+  papel_id    INTEGER NOT NULL REFERENCES papeis(id),
+  recurso_id  INTEGER NOT NULL REFERENCES recursos(id),
+  acao        VARCHAR(20) NOT NULL,
+  UNIQUE (papel_id, recurso_id, acao)
+);
+
+-- admin: tudo
+INSERT INTO rbac_permissoes (papel_id, recurso_id, acao)
+SELECT 1, r.id, a.acao
+FROM recursos r, (VALUES ('criar'),('ler'),('editar'),('deletar')) AS a(acao);
+
+-- gerente
+INSERT INTO rbac_permissoes (papel_id, recurso_id, acao) VALUES
+  (2, 1, 'ler'),
+  (2, 1, 'editar'),
+  (2, 2, 'criar'),
+  (2, 2, 'ler'),
+  (2, 2, 'editar'),
+  (2, 3, 'ler');
+
+-- funcionario
+INSERT INTO rbac_permissoes (papel_id, recurso_id, acao) VALUES
+  (3, 2, 'ler');
+
+
+-- 5. PERMISSÕES POR USUÁRIO — ACL
+CREATE TABLE acl_permissoes (
+  id          SERIAL PRIMARY KEY,
+  usuario_id  INTEGER NOT NULL REFERENCES usuarios(id),
+  recurso_id  INTEGER NOT NULL REFERENCES recursos(id),
+  acao        VARCHAR(20) NOT NULL,
+  UNIQUE (usuario_id, recurso_id, acao)
+);
+
+-- joao (id=4) pode criar relatórios mesmo sendo funcionario
+INSERT INTO acl_permissoes (usuario_id, recurso_id, acao) VALUES
+  (4, 2, 'criar');
