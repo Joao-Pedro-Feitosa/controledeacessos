@@ -1,4 +1,4 @@
-// app.js — navegação, controle de acesso híbrido, renderização
+// app.js — navegação, controle de acesso, renderização
 
 const RECURSOS = ["funcionarios", "relatorios", "financeiro", "config"];
 const ACOES    = ["criar", "ler", "editar", "deletar"];
@@ -10,26 +10,19 @@ async function entrarNoApp() {
   mostrarTela("tela-app");
   document.getElementById("lbl-user").textContent  = window.usuarioAtual.username;
   document.getElementById("lbl-papel").textContent = window.usuarioAtual.papel;
-  await filtrarMenuNavegacao();
+  filtrarMenuNavegacao();    // síncrono agora — sem await
   irPara("minhas-permissoes");
 }
 
 // ============================================================
-// FILTRA MENU — oculta botões de recursos sem nenhuma permissão
+// FILTRA MENU — usa o mapa em memória, sem queries
 // ============================================================
-async function filtrarMenuNavegacao() {
-  for (const recurso of RECURSOS) {
-    // Checa se tem ao menos UMA ação permitida neste recurso
-    let temAlguma = false;
-    for (const acao of ACOES) {
-      const { permitido } = await checarPermissao(window.usuarioAtual.id, recurso, acao);
-      if (permitido) { temAlguma = true; break; }
-    }
-
-    // Oculta o botão do menu se não tiver nenhuma permissão
+function filtrarMenuNavegacao() {
+  RECURSOS.forEach(recurso => {
+    const temAlguma = ACOES.some(acao => pode(recurso, acao));
     const btn = document.getElementById("nav-" + recurso);
-    if (btn && temAlguma) btn.classList.remove("hidden");
-  }
+    if (btn) btn.classList.toggle("hidden", !temAlguma);
+  });
 }
 
 // ============================================================
@@ -37,92 +30,54 @@ async function filtrarMenuNavegacao() {
 // ============================================================
 function mostrarTela(idTela) {
   ["tela-login", "tela-trocar-senha", "tela-app"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.classList.add("hidden");
+    document.getElementById(id)?.classList.add("hidden");
   });
-  const alvo = document.getElementById(idTela);
-  if (alvo) alvo.classList.remove("hidden");
+  document.getElementById(idTela)?.classList.remove("hidden");
 }
 
 // ============================================================
 // NAVEGAÇÃO ENTRE PÁGINAS
 // ============================================================
 function irPara(recurso) {
-  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-  const pagina = document.getElementById("page-" + recurso);
-  if (pagina) pagina.classList.add("active");
+  // Guarda bloqueada para recursos que exigem permissão
+  if (RECURSOS.includes(recurso) && !ACOES.some(a => pode(recurso, a))) {
+    alert("Acesso negado.");
+    return;
+  }
 
-  if (recurso === "minhas-permissoes") {
-    carregarMinhasPermissoes();
-  } else if (recurso !== "perfil") {
-    carregarPaginaRecurso(recurso);
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById("page-" + recurso)?.classList.add("active");
+
+  const carregadores = {
+    "minhas-permissoes": carregarMinhasPermissoes,
+    "funcionarios":      carregarPaginaRecurso,
+    "relatorios":        carregarPaginaRecurso,
+    "financeiro":        carregarPaginaRecurso,
+    "config":            carregarPaginaRecurso,
+  };
+
+  if (carregadores[recurso] && recurso !== "perfil") {
+    carregadores[recurso](recurso);
   }
 }
 
 // ============================================================
-// VERIFICAÇÃO HÍBRIDA: ACL → RBAC
+// PÁGINA DE RECURSO — renderiza só as ações permitidas
 // ============================================================
-async function checarPermissao(usuarioId, recursoNome, acao) {
-  const { data: rec } = await db
-    .from("recursos")
-    .select("id")
-    .eq("nome", recursoNome)
-    .single();
-
-  if (!rec) return { permitido: false, origem: "recurso não encontrado" };
-
-  // 1. Verifica ACL individual
-  const { data: acl } = await db
-    .from("acl_permissoes")
-    .select("id")
-    .eq("usuario_id", usuarioId)
-    .eq("recurso_id", rec.id)
-    .eq("acao", acao)
-    .maybeSingle();
-
-  if (acl) return { permitido: true, origem: "ACL (permissão individual)" };
-
-  // 2. Verifica RBAC do papel
-  const { data: usuario } = await db
-    .from("usuarios")
-    .select("papel_id")
-    .eq("id", usuarioId)
-    .single();
-
-  const { data: rbac } = await db
-    .from("rbac_permissoes")
-    .select("id")
-    .eq("papel_id", usuario.papel_id)
-    .eq("recurso_id", rec.id)
-    .eq("acao", acao)
-    .maybeSingle();
-
-  if (rbac) return { permitido: true, origem: "RBAC (papel: " + window.usuarioAtual.papel + ")" };
-
-  return { permitido: false, origem: "Negado" };
-}
-
-// ============================================================
-// PÁGINA DE RECURSO — só renderiza ações permitidas (oculta o resto)
-// ============================================================
-async function carregarPaginaRecurso(recurso) {
+function carregarPaginaRecurso(recurso) {
   const container = document.getElementById("acoes-" + recurso);
   if (!container) return;
-  container.innerHTML = "Verificando permissões...";
 
-  const permitidas = [];
-  for (const acao of ACOES) {
-    const { permitido, origem } = await checarPermissao(window.usuarioAtual.id, recurso, acao);
-    if (permitido) permitidas.push({ acao, origem });
-  }
+  const permitidas = ACOES
+    .filter(acao => pode(recurso, acao))
+    .map(acao => ({ acao, origem: origemPermissao(recurso, acao) }));
 
-  container.innerHTML = "";
-
-  if (permitidas.length === 0) {
+  if (!permitidas.length) {
     container.innerHTML = "<p class='err'>Você não tem acesso a este recurso.</p>";
     return;
   }
 
+  container.innerHTML = "";
   permitidas.forEach(({ acao, origem }) => {
     const btn = document.createElement("button");
     btn.textContent = acao.charAt(0).toUpperCase() + acao.slice(1);
@@ -135,26 +90,24 @@ async function carregarPaginaRecurso(recurso) {
 // ============================================================
 // PÁGINA: MINHAS PERMISSÕES
 // ============================================================
-async function carregarMinhasPermissoes() {
+function carregarMinhasPermissoes() {
   const tbody = document.getElementById("tabela-permissoes");
-  tbody.innerHTML = "<tr><td colspan='4'>Carregando...</td></tr>";
 
   const linhas = [];
-  for (const recurso of RECURSOS) {
-    for (const acao of ACOES) {
-      const { permitido, origem } = await checarPermissao(window.usuarioAtual.id, recurso, acao);
+  RECURSOS.forEach(recurso => {
+    ACOES.forEach(acao => {
+      const origem   = origemPermissao(recurso, acao);
+      const permitido = origem !== "Negado";
       linhas.push({ recurso, acao, permitido, origem });
-    }
-  }
-
-  tbody.innerHTML = "";
-  linhas.forEach(({ recurso, acao, permitido, origem }) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML =
-      "<td>" + recurso + "</td>" +
-      "<td>" + acao + "</td>" +
-      "<td>" + origem + "</td>" +
-      "<td class='" + (permitido ? "ok" : "err") + "'>" + (permitido ? "✔ Sim" : "✘ Não") + "</td>";
-    tbody.appendChild(tr);
+    });
   });
+
+  tbody.innerHTML = linhas.map(({ recurso, acao, permitido, origem }) => `
+    <tr>
+      <td>${recurso}</td>
+      <td>${acao}</td>
+      <td>${origem}</td>
+      <td class="${permitido ? "ok" : "err"}">${permitido ? "✔ Sim" : "✘ Não"}</td>
+    </tr>
+  `).join("");
 }
