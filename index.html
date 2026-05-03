@@ -4,139 +4,215 @@
   <meta charset="UTF-8">
   <title>Sistema de Gestão de Empresa</title>
   <style>
-    body { font-family: monospace; padding: 20px; max-width: 900px; }
+    * { box-sizing: border-box; }
+    body { font-family: monospace; padding: 20px; max-width: 1000px; margin: 0 auto; }
     table { border-collapse: collapse; width: 100%; margin: 10px 0; }
-    td, th { border: 1px solid #000; padding: 6px 10px; text-align: left; }
-    th { background: #eee; }
+    td, th { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
+    th { background: #f5f5f5; }
     .hidden { display: none; }
     .ok  { color: green; }
     .err { color: red; }
-    input, button { font-family: monospace; padding: 4px 8px; margin: 4px 2px; }
-    h2 { border-bottom: 1px solid #000; padding-bottom: 4px; margin-top: 20px; }
-    .box { border: 1px solid #ccc; padding: 14px; margin: 10px 0; }
+    input[type=text], input[type=password], select {
+      font-family: monospace; padding: 6px 8px;
+      margin: 4px 2px; border: 1px solid #ccc; border-radius: 4px;
+    }
+    button {
+      font-family: monospace; padding: 6px 12px;
+      margin: 4px 2px; border: 1px solid #999;
+      border-radius: 4px; cursor: pointer; background: #fff;
+    }
+    button:hover { background: #f0f0f0; }
+    h2 { border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-top: 20px; }
+    .box { border: 1px solid #ddd; padding: 16px; margin: 10px 0; border-radius: 6px; }
     .nav { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0; }
     .page { display: none; }
     .page.active { display: block; }
-    #criterios-senha span,
-    #criterios-perfil span { display: block; font-size: 0.9em; margin: 2px 0; }
-    .aviso { background: #fff3cd; border: 1px solid #ffc107; padding: 10px; margin-bottom: 10px; }
+    .aviso { background: #fff3cd; border: 1px solid #ffc107; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+    #criterios-senha span, #criterios-perfil span { display: block; font-size: 0.9em; margin: 2px 0; }
 
     /* Boas-vindas */
-    .bv-card { border: 1px solid #ccc; padding: 24px 28px; margin: 20px 0; max-width: 420px; }
     .bv-nome  { font-size: 1.4em; font-weight: bold; margin: 0 0 4px; }
-    .bv-cargo { color: #555; margin: 0 0 20px; }
-    .bv-modulos { display: flex; flex-wrap: wrap; gap: 8px; }
-    .bv-modulos button { padding: 8px 16px; cursor: pointer; }
+    .bv-cargo { color: #666; margin: 0 0 20px; font-size: 0.95em; }
+    .bv-modulos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .bv-modulos button { padding: 8px 18px; font-size: 1em; }
+
+    /* Criar usuário */
+    .perm-grupos { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+    .perm-grupo h4 { font-size: 0.8em; text-transform: uppercase; letter-spacing: .05em;
+      color: #888; margin: 0 0 8px; padding-bottom: 4px; border-bottom: 1px solid #eee; }
+    .perm-grupo label { display: flex; align-items: center; gap: 6px;
+      font-size: 0.9em; margin-bottom: 5px; cursor: pointer; }
+    .perm-grupo input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; }
+    .cargo-desc { font-size: 0.85em; color: #666; margin: 6px 0 14px;
+      padding: 8px 12px; border-left: 3px solid #ddd; line-height: 1.5; }
+
+    /* Lista de usuários */
+    .usuario-card { border: 1px solid #ddd; border-radius: 6px;
+      padding: 12px 16px; margin-bottom: 10px; }
+    .usuario-card-header { display: flex; justify-content: space-between; align-items: center; }
+    .usuario-nome { font-weight: bold; font-size: 1em; }
+    .usuario-cargo { font-size: 0.85em; color: #666; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px;
+      font-size: 0.75em; margin-left: 6px; }
+    .badge-ativo   { background: #d4edda; color: #155724; }
+    .badge-inativo { background: #f8d7da; color: #721c24; }
+    .form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+    .form-row label { display: flex; flex-direction: column; gap: 3px; font-size: 0.85em; color: #555; }
+    .form-row input, .form-row select { width: 200px; }
   </style>
 </head>
 <body>
 
 <!-- TELA 1: LOGIN -->
 <div id="tela-login" class="hidden">
-  <h1>Sistema de Gestão de Empresa</h1>
-  <div class="box">
+  <h1>Sistema de Gestão</h1>
+  <div class="box" style="max-width:340px">
     <h2>Login</h2>
-    <label>Usuário:<br>
-      <input id="inp-user" type="text" placeholder="username" style="width:240px">
-    </label><br>
-    <label>Senha:<br>
-      <input id="inp-pass" type="password" placeholder="senha" style="width:240px">
-    </label><br>
-    <button onclick="doLogin()">Entrar</button>
+    <label style="display:block;margin-bottom:8px">Usuário:<br>
+      <input id="inp-user" type="text" placeholder="username" style="width:100%">
+    </label>
+    <label style="display:block;margin-bottom:12px">Senha:<br>
+      <input id="inp-pass" type="password" placeholder="senha" style="width:100%">
+    </label>
+    <button onclick="doLogin()" style="width:100%">Entrar</button>
     <p id="login-err" class="err"></p>
   </div>
 </div>
 
-<!-- TELA 2: TROCAR SENHA (primeiro login) -->
+<!-- TELA 2: TROCAR SENHA -->
 <div id="tela-trocar-senha" class="hidden">
   <h1>Definir Nova Senha</h1>
   <div id="aviso-primeiro-login" class="aviso hidden">
-    <b>⚠ Primeiro acesso detectado.</b><br>
-    Por segurança, defina uma senha permanente antes de continuar.
+    <b>⚠ Primeiro acesso.</b> Defina uma senha permanente para continuar.
   </div>
-  <div class="box">
-    <label>Nova senha:<br>
-      <input id="inp-nova-senha" type="password" style="width:260px"
-             oninput="renderizarCriterios(this.value, 'criterios-senha')">
-    </label><br>
-    <div id="criterios-senha" style="margin:6px 0 10px;line-height:1.8;"></div>
-    <label>Confirmar nova senha:<br>
-      <input id="inp-confirmar-senha" type="password" style="width:260px">
-    </label><br>
-    <button onclick="doTrocarSenha()">Salvar nova senha</button>
+  <div class="box" style="max-width:380px">
+    <label style="display:block;margin-bottom:8px">Nova senha:<br>
+      <input id="inp-nova-senha" type="password" style="width:100%"
+             oninput="renderizarCriterios(this.value,'criterios-senha')">
+    </label>
+    <div id="criterios-senha" style="margin:4px 0 10px;line-height:1.8;"></div>
+    <label style="display:block;margin-bottom:12px">Confirmar senha:<br>
+      <input id="inp-confirmar-senha" type="password" style="width:100%">
+    </label>
+    <button onclick="doTrocarSenha()" style="width:100%">Salvar nova senha</button>
     <p id="trocar-err" class="err"></p>
     <p id="trocar-ok"  class="ok"></p>
   </div>
 </div>
 
-<!-- TELA 3: APP PRINCIPAL -->
+<!-- TELA 3: APP -->
 <div id="tela-app" class="hidden">
-  <h1>Sistema de Gestão de Empresa</h1>
-  <p>
+  <h1>Sistema de Gestão</h1>
+  <p style="margin-bottom:8px">
     Logado como: <b id="lbl-user"></b> | Cargo: <b id="lbl-papel"></b>
     <button onclick="doLogout()" style="margin-left:16px">Sair</button>
   </p>
 
-  <div class="nav">
-    <button id="nav-funcionarios" class="hidden" onclick="irPara('funcionarios')">👥 Funcionários</button>
-    <button id="nav-relatorios"   class="hidden" onclick="irPara('relatorios')">📄 Relatórios</button>
-    <button id="nav-financeiro"   class="hidden" onclick="irPara('financeiro')">💰 Financeiro</button>
-    <button id="nav-estoque"      class="hidden" onclick="irPara('estoque')">📦 Estoque</button>
-    <button id="nav-config"       class="hidden" onclick="irPara('config')">⚙️ Config</button>
-    <button onclick="irPara('perfil')">👤 Alterar Senha</button>
+  <div class="nav" id="nav-principal">
+    <button id="nav-bemvindo"      onclick="irPara('bemvindo')">🏠 Início</button>
+    <button id="nav-funcionarios"  class="hidden" onclick="irPara('funcionarios')">👥 Funcionários</button>
+    <button id="nav-documentos"    class="hidden" onclick="irPara('documentos')">📁 Documentos</button>
+    <button id="nav-relatorios"    class="hidden" onclick="irPara('relatorios')">📄 Relatórios</button>
+    <button id="nav-financeiro"    class="hidden" onclick="irPara('financeiro')">💰 Financeiro</button>
+    <button id="nav-estoque"       class="hidden" onclick="irPara('estoque')">📦 Estoque</button>
+    <button id="nav-monitoramento" class="hidden" onclick="irPara('monitoramento')">📷 Monitoramento</button>
+    <button id="nav-sistema"       class="hidden" onclick="irPara('sistema')">⚙️ Sistema</button>
+    <button                                        onclick="irPara('perfil')">👤 Alterar Senha</button>
   </div>
 
-  <!-- Boas-vindas (página inicial após login) -->
+  <!-- Boas-vindas -->
   <div id="page-bemvindo" class="page box">
-    <div class="bv-card">
-      <p class="bv-nome" id="bv-nome"></p>
-      <p class="bv-cargo" id="bv-cargo"></p>
-      <p style="margin:0 0 10px;font-size:0.9em;color:#333;">Seus módulos disponíveis:</p>
-      <div class="bv-modulos" id="bv-modulos"></div>
-    </div>
+    <p class="bv-nome" id="bv-nome"></p>
+    <p class="bv-cargo" id="bv-cargo"></p>
+    <p style="font-size:0.9em;color:#555;margin-bottom:6px">Seus módulos disponíveis:</p>
+    <div class="bv-modulos" id="bv-modulos"></div>
   </div>
 
   <!-- Funcionários -->
   <div id="page-funcionarios" class="page box">
     <h2>Funcionários</h2>
-    <div id="acoes-funcionarios"></div>
+    <div id="conteudo-funcionarios"></div>
+  </div>
+
+  <!-- Documentos -->
+  <div id="page-documentos" class="page box">
+    <h2>Documentos</h2>
+    <div id="conteudo-documentos"></div>
   </div>
 
   <!-- Relatórios -->
   <div id="page-relatorios" class="page box">
     <h2>Relatórios</h2>
-    <div id="acoes-relatorios"></div>
+    <div id="conteudo-relatorios"></div>
   </div>
 
   <!-- Financeiro -->
   <div id="page-financeiro" class="page box">
     <h2>Financeiro</h2>
-    <div id="acoes-financeiro"></div>
+    <div id="conteudo-financeiro"></div>
   </div>
 
   <!-- Estoque -->
   <div id="page-estoque" class="page box">
     <h2>Estoque</h2>
-    <div id="acoes-estoque"></div>
+    <div id="conteudo-estoque"></div>
   </div>
 
-  <!-- Config -->
-  <div id="page-config" class="page box">
-    <h2>Configurações</h2>
-    <div id="acoes-config"></div>
+  <!-- Monitoramento -->
+  <div id="page-monitoramento" class="page box">
+    <h2>Monitoramento</h2>
+    <div id="conteudo-monitoramento"></div>
   </div>
 
-  <!-- Alterar Senha -->
-  <div id="page-perfil" class="page box">
+  <!-- Sistema -->
+  <div id="page-sistema" class="page box">
+    <h2>Sistema</h2>
+    <div id="conteudo-sistema"></div>
+
+    <!-- Sub-página: criar/editar usuário (só renderiza dentro de sistema) -->
+    <div id="form-usuario" class="hidden" style="margin-top:20px;border-top:1px solid #ddd;padding-top:16px">
+      <h3 id="form-usuario-titulo">Novo usuário</h3>
+      <input type="hidden" id="form-usuario-id">
+      <div class="form-row">
+        <label>Usuário
+          <input type="text" id="fu-username" placeholder="ex: joana.lima">
+        </label>
+        <label>Senha provisória
+          <input type="text" id="fu-senha" placeholder="gerada pelo cargo">
+        </label>
+        <label>Cargo
+          <select id="fu-cargo" onchange="aplicarCargo(this.value)">
+            <option value="">— selecione —</option>
+            <option value="Coordenadora">Coordenadora</option>
+            <option value="Gerente">Gerente</option>
+            <option value="Analista de Estoque">Analista de Estoque</option>
+            <option value="Analista de RH">Analista de RH</option>
+            <option value="Analista de TI">Analista de TI</option>
+          </select>
+        </label>
+      </div>
+      <div class="cargo-desc hidden" id="fu-cargo-desc"></div>
+      <div class="perm-grupos" id="fu-permissoes"></div>
+      <div style="margin-top:16px">
+        <button onclick="salvarUsuario()">💾 Salvar</button>
+        <button onclick="fecharFormUsuario()">Cancelar</button>
+        <span id="fu-err" class="err" style="margin-left:8px"></span>
+        <span id="fu-ok"  class="ok"  style="margin-left:8px"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Perfil -->
+  <div id="page-perfil" class="page box" style="max-width:420px">
     <h2>Alterar Senha</h2>
-    <label>Nova senha:<br>
-      <input id="inp-perfil-nova" type="password" style="width:260px"
-             oninput="renderizarCriterios(this.value, 'criterios-perfil')">
-    </label><br>
-    <div id="criterios-perfil" style="margin:6px 0 10px;line-height:1.8;"></div>
-    <label>Confirmar nova senha:<br>
-      <input id="inp-perfil-confirmar" type="password" style="width:260px">
-    </label><br>
+    <label style="display:block;margin-bottom:8px">Nova senha:<br>
+      <input id="inp-perfil-nova" type="password" style="width:100%"
+             oninput="renderizarCriterios(this.value,'criterios-perfil')">
+    </label>
+    <div id="criterios-perfil" style="margin:4px 0 10px;line-height:1.8;"></div>
+    <label style="display:block;margin-bottom:12px">Confirmar senha:<br>
+      <input id="inp-perfil-confirmar" type="password" style="width:100%">
+    </label>
     <button onclick="doAlterarSenhaPerfil()">Salvar</button>
     <p id="perfil-err" class="err"></p>
     <p id="perfil-ok"  class="ok"></p>
