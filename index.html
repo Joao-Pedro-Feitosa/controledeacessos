@@ -39,14 +39,6 @@
     </label><br>
     <button onclick="doLogin()">Entrar</button>
     <p id="login-err" class="err"></p>
-    <hr>
-    <small>
-      Usuários de exemplo:<br>
-      admin / Admin@123456<br>
-      gerente / Gerente@123456<br>
-      funcionario / Func@1234567<br>
-      joao / Joao@123456789 (funcionario com ACL extra)
-    </small>
   </div>
 </div>
 
@@ -86,15 +78,19 @@
 <div id="tela-app" class="hidden">
   <h1>Sistema de Gestão de Empresa</h1>
   <p>
-    Logado como: <b id="lbl-user"></b> | Papel: <b id="lbl-papel"></b>
+    Logado como: <b id="lbl-user"></b> | Cargo: <b id="lbl-papel"></b>
     <button onclick="doLogout()" style="margin-left:16px">Sair</button>
   </p>
 
   <div class="nav">
+    <!-- Módulos principais — exibidos conforme permissão -->
     <button id="nav-funcionarios" class="hidden" onclick="irPara('funcionarios')">👥 Funcionários</button>
-    <button id="nav-relatorios" class="hidden" onclick="irPara('relatorios')">📄 Relatórios</button>
-    <button id="nav-financeiro" class="hidden" onclick="irPara('financeiro')">💰 Financeiro</button>
-    <button id="nav-config" class="hidden" onclick="irPara('config')">⚙️ Config</button>
+    <button id="nav-relatorios"   class="hidden" onclick="irPara('relatorios')">📄 Relatórios</button>
+    <button id="nav-financeiro"   class="hidden" onclick="irPara('financeiro')">💰 Financeiro</button>
+    <button id="nav-estoque"      class="hidden" onclick="irPara('estoque')">📦 Estoque</button>
+    <button id="nav-config"       class="hidden" onclick="irPara('config')">⚙️ Config</button>
+
+    <!-- Sempre visíveis -->
     <button onclick="irPara('minhas-permissoes')">🔑 Minhas Permissões</button>
     <button onclick="irPara('perfil')">👤 Alterar Senha</button>
   </div>
@@ -117,6 +113,12 @@
     <div id="acoes-financeiro"></div>
   </div>
 
+  <!-- Estoque -->
+  <div id="page-estoque" class="page box">
+    <h2>Estoque</h2>
+    <div id="acoes-estoque"></div>
+  </div>
+
   <!-- Config -->
   <div id="page-config" class="page box">
     <h2>Configurações</h2>
@@ -128,7 +130,12 @@
     <h2>Minhas Permissões</h2>
     <table>
       <thead>
-        <tr><th>Recurso</th><th>Ação</th><th>Origem</th><th>Permitido?</th></tr>
+        <tr>
+          <th>Recurso</th>
+          <th>Ação</th>
+          <th>Origem</th>
+          <th>Permitido?</th>
+        </tr>
       </thead>
       <tbody id="tabela-permissoes"></tbody>
     </table>
@@ -149,7 +156,8 @@
     <p id="perfil-err" class="err"></p>
     <p id="perfil-ok" class="ok"></p>
   </div>
-</div>
+
+</div><!-- fim tela-app -->
 
 
 <!-- Scripts — ordem importa -->
