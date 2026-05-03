@@ -1,7 +1,15 @@
-// app.js — navegação, controle de acesso, renderização
+// app.js
 
-const RECURSOS = ["funcionarios", "relatorios", "financeiro", "config"];
+const RECURSOS = ["funcionarios", "relatorios", "financeiro", "estoque", "config"];
 const ACOES    = ["criar", "ler", "editar", "deletar"];
+
+const LABEL_RECURSO = {
+  funcionarios: "👥 Funcionários",
+  relatorios:   "📄 Relatórios",
+  financeiro:   "💰 Financeiro",
+  estoque:      "📦 Estoque",
+  config:       "⚙️ Config",
+};
 
 // ============================================================
 // ENTRAR NO APP
@@ -10,18 +18,45 @@ async function entrarNoApp() {
   mostrarTela("tela-app");
   document.getElementById("lbl-user").textContent  = window.usuarioAtual.username;
   document.getElementById("lbl-papel").textContent = window.usuarioAtual.papel;
-  filtrarMenuNavegacao();    // síncrono agora — sem await
-  irPara("minhas-permissoes");
+  filtrarMenuNavegacao();
+  irPara("bemvindo");
 }
 
 // ============================================================
-// FILTRA MENU — usa o mapa em memória, sem queries
+// TELA DE BOAS-VINDAS
+// ============================================================
+function carregarBemVindo() {
+  const { username, papel } = window.usuarioAtual;
+
+  document.getElementById("bv-nome").textContent  = "Olá, " + username + "!";
+  document.getElementById("bv-cargo").textContent = papel || "Sem cargo definido";
+
+  const container = document.getElementById("bv-modulos");
+  container.innerHTML = "";
+
+  // Mostra botão apenas dos módulos que o usuário tem acesso
+  const disponiveis = RECURSOS.filter(r => ACOES.some(a => pode(r, a)));
+
+  if (!disponiveis.length) {
+    container.innerHTML = "<p class='err'>Nenhum módulo disponível. Contate o administrador.</p>";
+    return;
+  }
+
+  disponiveis.forEach(recurso => {
+    const btn = document.createElement("button");
+    btn.textContent = LABEL_RECURSO[recurso] || recurso;
+    btn.onclick = () => irPara(recurso);
+    container.appendChild(btn);
+  });
+}
+
+// ============================================================
+// FILTRA MENU DE NAVEGAÇÃO
 // ============================================================
 function filtrarMenuNavegacao() {
   RECURSOS.forEach(recurso => {
     const temAlguma = ACOES.some(acao => pode(recurso, acao));
-    const btn = document.getElementById("nav-" + recurso);
-    if (btn) btn.classList.toggle("hidden", !temAlguma);
+    document.getElementById("nav-" + recurso)?.classList.toggle("hidden", !temAlguma);
   });
 }
 
@@ -39,7 +74,7 @@ function mostrarTela(idTela) {
 // NAVEGAÇÃO ENTRE PÁGINAS
 // ============================================================
 function irPara(recurso) {
-  // Guarda bloqueada para recursos que exigem permissão
+  // Bloqueia acesso direto sem permissão
   if (RECURSOS.includes(recurso) && !ACOES.some(a => pode(recurso, a))) {
     alert("Acesso negado.");
     return;
@@ -49,11 +84,12 @@ function irPara(recurso) {
   document.getElementById("page-" + recurso)?.classList.add("active");
 
   const carregadores = {
-    "minhas-permissoes": carregarMinhasPermissoes,
-    "funcionarios":      carregarPaginaRecurso,
-    "relatorios":        carregarPaginaRecurso,
-    "financeiro":        carregarPaginaRecurso,
-    "config":            carregarPaginaRecurso,
+    "bemvindo":     carregarBemVindo,
+    "funcionarios": carregarPaginaRecurso,
+    "relatorios":   carregarPaginaRecurso,
+    "financeiro":   carregarPaginaRecurso,
+    "estoque":      carregarPaginaRecurso,
+    "config":       carregarPaginaRecurso,
   };
 
   if (carregadores[recurso] && recurso !== "perfil") {
@@ -62,7 +98,7 @@ function irPara(recurso) {
 }
 
 // ============================================================
-// PÁGINA DE RECURSO — renderiza só as ações permitidas
+// PÁGINA DE RECURSO
 // ============================================================
 function carregarPaginaRecurso(recurso) {
   const container = document.getElementById("acoes-" + recurso);
@@ -81,33 +117,8 @@ function carregarPaginaRecurso(recurso) {
   permitidas.forEach(({ acao, origem }) => {
     const btn = document.createElement("button");
     btn.textContent = acao.charAt(0).toUpperCase() + acao.slice(1);
-    btn.title       = "Permitido via: " + origem;
+    btn.title       = "Via: " + origem;
     btn.onclick     = () => alert("Ação: " + acao + "\nRecurso: " + recurso + "\nOrigem: " + origem);
     container.appendChild(btn);
   });
-}
-
-// ============================================================
-// PÁGINA: MINHAS PERMISSÕES
-// ============================================================
-function carregarMinhasPermissoes() {
-  const tbody = document.getElementById("tabela-permissoes");
-
-  const linhas = [];
-  RECURSOS.forEach(recurso => {
-    ACOES.forEach(acao => {
-      const origem   = origemPermissao(recurso, acao);
-      const permitido = origem !== "Negado";
-      linhas.push({ recurso, acao, permitido, origem });
-    });
-  });
-
-  tbody.innerHTML = linhas.map(({ recurso, acao, permitido, origem }) => `
-    <tr>
-      <td>${recurso}</td>
-      <td>${acao}</td>
-      <td>${origem}</td>
-      <td class="${permitido ? "ok" : "err"}">${permitido ? "✔ Sim" : "✘ Não"}</td>
-    </tr>
-  `).join("");
 }
