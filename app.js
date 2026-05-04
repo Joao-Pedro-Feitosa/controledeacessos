@@ -13,6 +13,15 @@ const MODULOS = [
   { key: "sistema",       label: "⚙️ Sistema",         guard: "ver_logs"             },
 ];
 
+// Dados mockados (Front-end)
+const LISTA_FUNCIONARIOS = [
+  {nome:"Maria Silva",cargo:"Coordenadora",setor:"Operações",status:true},
+  {nome:"João Santos",cargo:"Analista de RH",setor:"RH",status:true},
+  {nome:"Ana Oliveira",cargo:"Analista de Estoque",setor:"Logística",status:true},
+  {nome:"Carlos Lima",cargo:"Analista de TI",setor:"TI",status:true},
+  {nome:"Pedro Costa",cargo:"Gerente",setor:"Administrativo",status:false},
+];
+
 // ============================================================
 // PERMISSÕES POR CARGO (pré-sets para o formulário de criação)
 // ============================================================
@@ -125,10 +134,18 @@ const FUNCOES_GRUPOS = {
 // ============================================================
 // ENTRAR NO APP
 // ============================================================
+function toggleSidebar() {
+  document.getElementById('sidebar')?.classList.toggle('open');
+  document.getElementById('sidebar-overlay')?.classList.toggle('active');
+}
+
 async function entrarNoApp() {
   mostrarTela("tela-app");
-  document.getElementById("lbl-user").textContent  = window.usuarioAtual.username;
+  const uname = window.usuarioAtual.username;
+  document.getElementById("lbl-user").textContent  = uname;
   document.getElementById("lbl-papel").textContent = window.usuarioAtual.cargo;
+  const avatar = document.getElementById("topbar-avatar");
+  if (avatar) avatar.textContent = uname.charAt(0).toUpperCase();
   filtrarMenuNavegacao();
   irPara("bemvindo");
 }
@@ -152,6 +169,14 @@ function irPara(pagina) {
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   document.getElementById("page-" + pagina)?.classList.add("active");
 
+  document.querySelectorAll(".sidebar-btn").forEach(b => b.classList.remove("active"));
+  const navBtn = document.getElementById("nav-" + pagina);
+  if (navBtn) navBtn.classList.add("active");
+
+  // Close mobile sidebar
+  document.getElementById('sidebar')?.classList.remove('open');
+  document.getElementById('sidebar-overlay')?.classList.remove('active');
+
   const fn = {
     bemvindo:      carregarBemVindo,
     funcionarios:  carregarFuncionarios,
@@ -169,91 +194,124 @@ function irPara(pagina) {
 // ============================================================
 // BEM-VINDO
 // ============================================================
-function carregarBemVindo() {
+async function carregarBemVindo() {
   document.getElementById("bv-nome").textContent  = "Olá, " + window.usuarioAtual.username + "!";
   document.getElementById("bv-cargo").textContent = window.usuarioAtual.cargo;
 
-  const container = document.getElementById("bv-modulos");
-  container.innerHTML = "";
-  const disponiveis = MODULOS.filter(m => pode(m.guard));
-
-  if (!disponiveis.length) {
-    container.innerHTML = "<p class='err'>Nenhum módulo disponível. Contate o administrador.</p>";
-    return;
+  // --- Fetch stats from Supabase ---
+  try {
+    const [resTotal, resInativos, resPerms] = await Promise.all([
+      db.from("usuarios").select("id", { count: "exact", head: true }),
+      db.from("usuarios").select("id", { count: "exact", head: true }).eq("ativo", false),
+      db.from("permissoes_usuario").select("id", { count: "exact", head: true }).eq("permitido", true),
+    ]);
+    document.getElementById("stat-funcionarios").textContent = LISTA_FUNCIONARIOS.length;
+    document.getElementById("stat-usuarios-total").textContent = resTotal.count ?? "—";
+    document.getElementById("stat-inativos").textContent = resInativos.count ?? "0";
+    document.getElementById("stat-permissoes").textContent = resPerms.count ?? "—";
+  } catch (e) {
+    console.warn("Erro ao carregar estatísticas:", e);
   }
-  disponiveis.forEach(({ key, label }) => {
-    const btn = document.createElement("button");
-    btn.textContent = label;
-    btn.onclick = () => irPara(key);
-    container.appendChild(btn);
-  });
+
+
 }
 
 // ============================================================
 // FUNCIONÁRIOS
 // ============================================================
 function carregarFuncionarios() {
+  const acoes = document.getElementById("acoes-funcionarios");
+  let ab = "";
+  if (pode("cadastrar_funcionario")) ab += `<button class="btn-primary" onclick="alert('Formulário de novo funcionário')">+ Novo funcionário</button>`;
+  if (pode("ver_escala")) ab += `<button onclick="alert('Escala de trabalho')">📅 Ver escala</button>`;
+  if (acoes) acoes.innerHTML = ab;
+
   const el = document.getElementById("conteudo-funcionarios");
-  let html = "";
-  if (pode("cadastrar_funcionario")) html += `<button onclick="alert('Formulário de novo funcionário')">+ Novo funcionário</button>`;
-  if (pode("ver_escala"))            html += `<button onclick="alert('Escala de trabalho')">Ver escala</button>`;
-  html += "<p style='color:#888;margin-top:12px;font-size:0.9em'>Lista de funcionários será exibida aqui.</p>";
-  el.innerHTML = html;
+  el.innerHTML = `<table><thead><tr><th>Nome</th><th>Cargo</th><th>Setor</th><th>Status</th></tr></thead><tbody>${LISTA_FUNCIONARIOS.map(f=>`<tr><td>${f.nome}</td><td>${f.cargo}</td><td>${f.setor}</td><td><span class="badge ${f.status?'badge-ativo':'badge-inativo'}">${f.status?'Ativo':'Inativo'}</span></td></tr>`).join('')}</tbody></table>`;
 }
 
 // ============================================================
 // DOCUMENTOS
 // ============================================================
 function carregarDocumentos() {
+  const acoes = document.getElementById("acoes-documentos");
+  let ab = "";
+  if (pode("upload_documento")) ab += `<button class="btn-primary" onclick="alert('Enviar documento')">+ Enviar documento</button>`;
+  if (acoes) acoes.innerHTML = ab;
+
   const el = document.getElementById("conteudo-documentos");
-  let html = "";
-  if (pode("upload_documento"))  html += `<button onclick="alert('Enviar documento')">+ Enviar documento</button>`;
-  if (pode("alterar_documento")) html += `<button onclick="alert('Alterar documento')">Alterar</button>`;
-  if (pode("assinar_documento")) html += `<button onclick="alert('Assinar documento')">Assinar</button>`;
-  if (pode("excluir_documento")) html += `<button onclick="alert('Excluir documento')" style="color:red">Excluir</button>`;
-  html += "<p style='color:#888;margin-top:12px;font-size:0.9em'>Documentos serão listados aqui.</p>";
-  el.innerHTML = html;
+  const docs = [
+    {nome:"Contrato_2025.pdf",tipo:"Contrato",data:"02/05/2026",autor:"Maria Silva"},
+    {nome:"Relatorio_Mensal.xlsx",tipo:"Relatório",data:"01/05/2026",autor:"João Santos"},
+    {nome:"Politica_Seguranca.docx",tipo:"Política",data:"28/04/2026",autor:"Carlos Lima"},
+    {nome:"Ata_Reuniao_04.pdf",tipo:"Ata",data:"25/04/2026",autor:"Ana Oliveira"},
+  ];
+  let h = `<table><thead><tr><th>Documento</th><th>Tipo</th><th>Data</th><th>Autor</th><th>Ações</th></tr></thead><tbody>`;
+  docs.forEach(d => {
+    let acts = '';
+    if (pode("alterar_documento")) acts += `<button class="btn-sm" onclick="alert('Editar')">✏️</button> `;
+    if (pode("assinar_documento")) acts += `<button class="btn-sm" onclick="alert('Assinar')">✍️</button> `;
+    if (pode("excluir_documento")) acts += `<button class="btn-sm btn-danger" onclick="alert('Excluir')">🗑️</button>`;
+    h += `<tr><td>${d.nome}</td><td>${d.tipo}</td><td>${d.data}</td><td>${d.autor}</td><td>${acts||'—'}</td></tr>`;
+  });
+  el.innerHTML = h + '</tbody></table>';
 }
 
 // ============================================================
 // RELATÓRIOS
 // ============================================================
 function carregarRelatorios() {
+  const acoes = document.getElementById("acoes-relatorios");
+  let ab = "";
+  if (pode("gerar_relatorio")) ab += `<button class="btn-primary" onclick="alert('Gerar relatório')">+ Gerar relatório</button>`;
+  if (pode("exportar_relatorio")) ab += `<button onclick="alert('Exportar')">⬇ Exportar</button>`;
+  if (acoes) acoes.innerHTML = ab;
+
   const el = document.getElementById("conteudo-relatorios");
-  let html = "";
-  if (pode("gerar_relatorio"))    html += `<button onclick="alert('Gerar relatório')">+ Gerar relatório</button>`;
-  if (pode("exportar_relatorio")) html += `<button onclick="alert('Exportar')">Exportar</button>`;
-  html += "<p style='color:#888;margin-top:12px;font-size:0.9em'>Relatórios serão listados aqui.</p>";
-  el.innerHTML = html;
+  const rels = [
+    {titulo:"Relatório de Vendas - Abril",tipo:"Vendas",data:"30/04/2026",status:"Concluído"},
+    {titulo:"Auditoria de Estoque Q1",tipo:"Estoque",data:"15/04/2026",status:"Concluído"},
+    {titulo:"Desempenho da Equipe",tipo:"RH",data:"10/04/2026",status:"Em análise"},
+  ];
+  el.innerHTML = rels.map(r => `<div class="module-card"><div class="module-card-info"><div class="module-card-title">${r.titulo}</div><div class="module-card-sub">${r.tipo} · ${r.data}</div></div><span class="badge ${r.status==='Concluído'?'badge-ativo':'badge-inativo'}">${r.status}</span></div>`).join('');
 }
 
 // ============================================================
 // FINANCEIRO
 // ============================================================
 function carregarFinanceiro() {
+  const acoes = document.getElementById("acoes-financeiro");
+  let ab = "";
+  if (pode("realizar_pagamento")) ab += `<button class="btn-primary" onclick="alert('Realizar pagamento')">💳 Pagamento</button>`;
+  if (pode("aprovar_despesa")) ab += `<button onclick="alert('Aprovar despesa')">✔ Aprovar despesa</button>`;
+  if (pode("ver_folha_pagamento")) ab += `<button onclick="alert('Folha')">📋 Folha</button>`;
+  if (pode("fechar_caixa")) ab += `<button onclick="alert('Fechar caixa')">🔒 Fechar caixa</button>`;
+  if (acoes) acoes.innerHTML = ab;
+
   const el = document.getElementById("conteudo-financeiro");
-  let html = "";
-  if (pode("realizar_pagamento"))  html += `<button onclick="alert('Realizar pagamento')">💳 Realizar pagamento</button>`;
-  if (pode("aprovar_despesa"))     html += `<button onclick="alert('Aprovar despesa')">✔ Aprovar despesa</button>`;
-  if (pode("ver_folha_pagamento")) html += `<button onclick="alert('Folha de pagamento')">📋 Folha de pagamento</button>`;
-  if (pode("fechar_caixa"))        html += `<button onclick="alert('Fechar caixa')">🔒 Fechar caixa</button>`;
-  html += "<p style='color:#888;margin-top:12px;font-size:0.9em'>Resumo financeiro será exibido aqui.</p>";
-  el.innerHTML = html;
+  el.innerHTML = `<div class="dashboard-stats" style="margin-bottom:20px"><div class="stat-card glass"><div class="stat-icon" style="background:rgba(52,211,153,0.12);color:#34d399">💰</div><div class="stat-info"><div class="stat-value">R$ 84.500</div><div class="stat-label">Receita mensal</div></div></div><div class="stat-card glass"><div class="stat-icon" style="background:rgba(248,113,113,0.12);color:#f87171">📉</div><div class="stat-info"><div class="stat-value">R$ 32.100</div><div class="stat-label">Despesas</div></div></div><div class="stat-card glass"><div class="stat-icon" style="background:rgba(108,99,255,0.15);color:#a78bfa">📊</div><div class="stat-info"><div class="stat-value">R$ 52.400</div><div class="stat-label">Saldo</div></div></div></div><table><thead><tr><th>Descrição</th><th>Valor</th><th>Data</th><th>Status</th></tr></thead><tbody><tr><td>Folha de pagamento</td><td>R$ 28.000</td><td>05/05/2026</td><td><span class="badge badge-ativo">Pago</span></td></tr><tr><td>Aluguel do escritório</td><td>R$ 4.500</td><td>01/05/2026</td><td><span class="badge badge-ativo">Pago</span></td></tr><tr><td>Fornecedor XYZ</td><td>R$ 12.300</td><td>10/05/2026</td><td><span class="badge badge-inativo">Pendente</span></td></tr></tbody></table>`;
 }
 
 // ============================================================
 // ESTOQUE
 // ============================================================
 function carregarEstoque() {
+  const acoes = document.getElementById("acoes-estoque");
+  let ab = "";
+  if (pode("entrada_mercadoria")) ab += `<button class="btn-primary" onclick="alert('Entrada')">+ Entrada</button>`;
+  if (pode("saida_mercadoria")) ab += `<button onclick="alert('Saída')">- Saída</button>`;
+  if (pode("inventario")) ab += `<button onclick="alert('Inventário')">📋 Inventário</button>`;
+  if (acoes) acoes.innerHTML = ab;
+
   const el = document.getElementById("conteudo-estoque");
-  let html = "";
-  if (pode("entrada_mercadoria"))  html += `<button onclick="alert('Entrada de mercadoria')">+ Entrada</button>`;
-  if (pode("saida_mercadoria"))    html += `<button onclick="alert('Saída de mercadoria')">- Saída</button>`;
-  if (pode("ajustar_estoque"))     html += `<button onclick="alert('Ajustar saldo')">Ajustar saldo</button>`;
-  if (pode("solicitar_reposicao")) html += `<button onclick="alert('Solicitar reposição')">Solicitar reposição</button>`;
-  if (pode("inventario"))          html += `<button onclick="alert('Inventário')">Inventário</button>`;
-  html += "<p style='color:#888;margin-top:12px;font-size:0.9em'>Itens do estoque serão listados aqui.</p>";
-  el.innerHTML = html;
+  const itens = [
+    {item:"Papel A4 (resma)",qtd:120,min:50,status:"Normal"},
+    {item:"Toner impressora",qtd:8,min:5,status:"Normal"},
+    {item:"Caneta esferográfica",qtd:45,min:30,status:"Normal"},
+    {item:"Envelope pardo",qtd:12,min:20,status:"Baixo"},
+    {item:"Pasta suspensa",qtd:3,min:15,status:"Crítico"},
+  ];
+  el.innerHTML = `<table><thead><tr><th>Item</th><th>Quantidade</th><th>Mínimo</th><th>Status</th></tr></thead><tbody>${itens.map(i=>`<tr><td>${i.item}</td><td>${i.qtd}</td><td>${i.min}</td><td><span class="badge ${i.status==='Normal'?'badge-ativo':'badge-inativo'}">${i.status}</span></td></tr>`).join('')}</tbody></table>`;
 }
 
 // ============================================================
@@ -264,11 +322,10 @@ function carregarMonitoramento() {
   let html = "";
   if (pode("ver_cameras")) {
     html += `
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+      <div class="cam-grid">
         ${["Entrada principal","Sala de operações","Estoque","Financeiro","RH","TI"].map(cam => `
-          <div style="border:1px solid #ddd;border-radius:6px;padding:10px;text-align:center;font-size:0.85em">
-            <div style="background:#111;height:70px;border-radius:4px;margin-bottom:6px;
-                        display:flex;align-items:center;justify-content:center;color:#0f0;font-size:0.8em">
+          <div class="cam-card">
+            <div class="cam-preview ${pode("monitorar_ao_vivo") ? "" : "no-access"}">
               ${pode("monitorar_ao_vivo") ? "● AO VIVO" : "⬛ SEM ACESSO"}
             </div>
             📷 ${cam}
@@ -286,27 +343,18 @@ function carregarMonitoramento() {
 // SISTEMA
 // ============================================================
 function carregarSistema() {
+  const acoes = document.getElementById("acoes-sistema");
+  let ab = "";
+  if (pode("criar_usuario")) ab += `<button class="btn-primary" onclick="abrirFormUsuario()">+ Novo usuário</button>`;
+  if (pode("ver_logs")) ab += `<button onclick="alert('Logs do sistema')">📋 Logs</button>`;
+  if (pode("config_sistema")) ab += `<button onclick="alert('Configurações')">⚙️ Config</button>`;
+  if (acoes) acoes.innerHTML = ab;
+
   const el = document.getElementById("conteudo-sistema");
   let html = "";
-
-  if (pode("criar_usuario")) {
-    html += `<button onclick="abrirFormUsuario()">+ Novo usuário</button>`;
-  }
-  if (pode("ver_logs")) {
-    html += `<button onclick="alert('Logs do sistema')">📋 Ver logs</button>`;
-  }
-  if (pode("config_sistema")) {
-    html += `<button onclick="alert('Configurações')">⚙️ Configurações</button>`;
-  }
-  if (pode("acesso_redes")) {
-    html += `<button onclick="alert('Redes sociais')">🌐 Redes sociais</button>`;
-  }
-
-  // Lista de usuários
   if (pode("criar_usuario") || pode("editar_permissoes")) {
-    html += `<div id="lista-usuarios" style="margin-top:16px"></div>`;
+    html += `<div id="lista-usuarios" style="margin-top:8px"></div>`;
   }
-
   el.innerHTML = html;
 
   if (pode("criar_usuario") || pode("editar_permissoes")) {
