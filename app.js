@@ -4,23 +4,17 @@
 // MAPA DE MÓDULOS → funções mínimas para exibir no menu
 // ============================================================
 const MODULOS = [
-  { key: "funcionarios",  label: "👥 Funcionários",   guard: "ver_funcionarios"     },
-  { key: "documentos",    label: "📁 Documentos",      guard: "ver_documentos"       },
-  { key: "relatorios",    label: "📄 Relatórios",      guard: "ver_relatorios"       },
-  { key: "financeiro",    label: "💰 Financeiro",      guard: "ver_financeiro"       },
-  { key: "estoque",       label: "📦 Estoque",         guard: "ver_estoque"          },
-  { key: "monitoramento", label: "📷 Monitoramento",   guard: "ver_cameras"          },
-  { key: "sistema",       label: "⚙️ Sistema",         guard: "ver_logs"             },
+  { key: "funcionarios", label: "👥 Usuários / Funcionários", guard: "criar_usuario" },
+  { key: "documentos", label: "📁 Documentos", guard: "ver_documentos" },
+  { key: "relatorios", label: "📄 Relatórios", guard: "ver_relatorios" },
+  { key: "financeiro", label: "💰 Financeiro", guard: "ver_financeiro" },
+  { key: "estoque", label: "📦 Estoque", guard: "ver_estoque" },
+  { key: "monitoramento", label: "📷 Monitoramento", guard: "ver_cameras" },
+  { key: "sistema", label: "⚙️ Sistema", guard: "ver_logs" },
+  { key: "cargos", label: "🏢 Cargos", guard: "gerenciar_cargos" },
 ];
 
-// Dados mockados (Front-end)
-const LISTA_FUNCIONARIOS = [
-  {nome:"Maria Silva",cargo:"Coordenadora",setor:"Operações",status:true},
-  {nome:"João Santos",cargo:"Analista de RH",setor:"RH",status:true},
-  {nome:"Ana Oliveira",cargo:"Analista de Estoque",setor:"Logística",status:true},
-  {nome:"Carlos Lima",cargo:"Analista de TI",setor:"TI",status:true},
-  {nome:"Pedro Costa",cargo:"Gerente",setor:"Administrativo",status:false},
-];
+
 
 // ============================================================
 // DESCRIÇÕES DOS PAPÉIS (apenas para exibição no formulário)
@@ -57,53 +51,50 @@ async function carregarPapeis() {
 // ============================================================
 const FUNCOES_GRUPOS = {
   "Equipe & RH": [
-    { key: "ver_funcionarios",      label: "Ver funcionários"            },
-    { key: "cadastrar_funcionario", label: "Cadastrar funcionário"       },
-    { key: "editar_funcionario",    label: "Editar dados de funcionário" },
-    { key: "desligar_funcionario",  label: "Desligar funcionário"        },
-    { key: "ver_escala",            label: "Ver escala de trabalho"      },
-    { key: "editar_escala",         label: "Editar escala de trabalho"   },
+    { key: "ver_escala", label: "Ver escala de trabalho" },
+    { key: "editar_escala", label: "Editar escala de trabalho" },
   ],
   "Documentos": [
-    { key: "ver_documentos",        label: "Ver documentos"              },
-    { key: "upload_documento",      label: "Enviar documentos"           },
-    { key: "alterar_documento",     label: "Alterar documentos"          },
-    { key: "excluir_documento",     label: "Excluir documentos"          },
-    { key: "assinar_documento",     label: "Assinar documentos"          },
+    { key: "ver_documentos", label: "Ver documentos" },
+    { key: "upload_documento", label: "Enviar documentos" },
+    { key: "alterar_documento", label: "Alterar documentos" },
+    { key: "excluir_documento", label: "Excluir documentos" },
+    { key: "assinar_documento", label: "Assinar documentos" },
   ],
   "Relatórios": [
-    { key: "ver_relatorios",        label: "Ver relatórios"              },
-    { key: "gerar_relatorio",       label: "Gerar relatórios"            },
-    { key: "exportar_relatorio",    label: "Exportar relatórios"         },
+    { key: "ver_relatorios", label: "Ver relatórios" },
+    { key: "gerar_relatorio", label: "Gerar relatórios" },
+    { key: "exportar_relatorio", label: "Exportar relatórios" },
   ],
   "Financeiro": [
-    { key: "ver_financeiro",        label: "Ver resumo financeiro"       },
-    { key: "aprovar_despesa",       label: "Aprovar despesas"            },
-    { key: "realizar_pagamento",    label: "Realizar pagamentos"         },
-    { key: "ver_folha_pagamento",   label: "Ver folha de pagamento"      },
-    { key: "fechar_caixa",          label: "Fechar caixa"                },
+    { key: "ver_financeiro", label: "Ver resumo financeiro" },
+    { key: "aprovar_despesa", label: "Aprovar despesas" },
+    { key: "realizar_pagamento", label: "Realizar pagamentos" },
+    { key: "ver_folha_pagamento", label: "Ver folha de pagamento" },
+    { key: "fechar_caixa", label: "Fechar caixa" },
   ],
   "Estoque": [
-    { key: "ver_estoque",           label: "Ver estoque"                 },
-    { key: "entrada_mercadoria",    label: "Registrar entrada"           },
-    { key: "saida_mercadoria",      label: "Registrar saída"             },
-    { key: "ajustar_estoque",       label: "Ajustar saldo"               },
-    { key: "solicitar_reposicao",   label: "Solicitar reposição"         },
-    { key: "inventario",            label: "Realizar inventário"         },
+    { key: "ver_estoque", label: "Ver estoque" },
+    { key: "entrada_mercadoria", label: "Registrar entrada" },
+    { key: "saida_mercadoria", label: "Registrar saída" },
+    { key: "ajustar_estoque", label: "Ajustar saldo" },
+    { key: "solicitar_reposicao", label: "Solicitar reposição" },
+    { key: "inventario", label: "Realizar inventário" },
   ],
   "Monitoramento": [
-    { key: "ver_cameras",           label: "Ver câmeras"                 },
-    { key: "monitorar_ao_vivo",     label: "Monitorar ao vivo"           },
-    { key: "ver_historico_acesso",  label: "Ver histórico de acesso"     },
-    { key: "ver_localizacao",       label: "Ver localização de equipe"   },
-    { key: "exportar_monitoramento",label: "Exportar registros"          },
+    { key: "ver_cameras", label: "Ver câmeras" },
+    { key: "monitorar_ao_vivo", label: "Monitorar ao vivo" },
+    { key: "ver_historico_acesso", label: "Ver histórico de acesso" },
+    { key: "ver_localizacao", label: "Ver localização de equipe" },
+    { key: "exportar_monitoramento", label: "Exportar registros" },
   ],
   "Sistema": [
-    { key: "acesso_redes",          label: "Acesso às redes sociais"     },
-    { key: "ver_logs",              label: "Ver logs do sistema"         },
-    { key: "config_sistema",        label: "Configurar sistema"          },
-    { key: "criar_usuario",         label: "Criar usuários"              },
-    { key: "editar_permissoes",     label: "Editar permissões"           },
+    { key: "acesso_redes", label: "Acesso às redes sociais" },
+    { key: "ver_logs", label: "Ver logs do sistema" },
+    { key: "config_sistema", label: "Configurar sistema" },
+    { key: "criar_usuario", label: "Criar usuários" },
+    { key: "editar_permissoes", label: "Editar permissões" },
+    { key: "gerenciar_cargos", label: "Gerenciar cargos" },
   ],
 };
 
@@ -118,7 +109,7 @@ function toggleSidebar() {
 async function entrarNoApp() {
   mostrarTela("tela-app");
   const uname = window.usuarioAtual.username;
-  document.getElementById("lbl-user").textContent  = uname;
+  document.getElementById("lbl-user").textContent = uname;
   document.getElementById("lbl-papel").textContent = window.usuarioAtual.cargo;
   const avatar = document.getElementById("topbar-avatar");
   if (avatar) avatar.textContent = uname.charAt(0).toUpperCase();
@@ -154,14 +145,15 @@ function irPara(pagina) {
   document.getElementById('sidebar-overlay')?.classList.remove('active');
 
   const fn = {
-    bemvindo:      carregarBemVindo,
-    funcionarios:  carregarFuncionarios,
-    documentos:    carregarDocumentos,
-    relatorios:    carregarRelatorios,
-    financeiro:    carregarFinanceiro,
-    estoque:       carregarEstoque,
+    bemvindo: carregarBemVindo,
+    funcionarios: carregarFuncionarios,
+    documentos: carregarDocumentos,
+    relatorios: carregarRelatorios,
+    financeiro: carregarFinanceiro,
+    estoque: carregarEstoque,
     monitoramento: carregarMonitoramento,
-    sistema:       carregarSistema,
+    sistema: carregarSistema,
+    cargos: carregarCargos,
   }[pagina];
 
   fn?.();
@@ -171,7 +163,7 @@ function irPara(pagina) {
 // BEM-VINDO
 // ============================================================
 async function carregarBemVindo() {
-  document.getElementById("bv-nome").textContent  = "Olá, " + window.usuarioAtual.username + "!";
+  document.getElementById("bv-nome").textContent = "Olá, " + window.usuarioAtual.username + "!";
   document.getElementById("bv-cargo").textContent = window.usuarioAtual.cargo;
 
   // --- Fetch stats from Supabase ---
@@ -181,7 +173,7 @@ async function carregarBemVindo() {
       db.from("usuarios").select("id", { count: "exact", head: true }).eq("ativo", false),
       db.from("permissoes_usuario").select("id", { count: "exact", head: true }).eq("permitido", true),
     ]);
-    document.getElementById("stat-funcionarios").textContent = LISTA_FUNCIONARIOS.length;
+    document.getElementById("stat-funcionarios").textContent = (resTotal.count || 0) - (resInativos.count || 0);
     document.getElementById("stat-usuarios-total").textContent = resTotal.count ?? "—";
     document.getElementById("stat-inativos").textContent = resInativos.count ?? "0";
     document.getElementById("stat-permissoes").textContent = resPerms.count ?? "—";
@@ -195,15 +187,39 @@ async function carregarBemVindo() {
 // ============================================================
 // FUNCIONÁRIOS
 // ============================================================
-function carregarFuncionarios() {
+async function carregarFuncionarios() {
   const acoes = document.getElementById("acoes-funcionarios");
   let ab = "";
-  if (pode("cadastrar_funcionario")) ab += `<button class="btn-primary" onclick="alert('Formulário de novo funcionário')">+ Novo funcionário</button>`;
+  if (pode("criar_usuario")) ab += `<button class="btn-primary" onclick="abrirFormUsuario()">+ Novo usuário/funcionário</button>`;
   if (pode("ver_escala")) ab += `<button onclick="alert('Escala de trabalho')">📅 Ver escala</button>`;
   if (acoes) acoes.innerHTML = ab;
 
   const el = document.getElementById("conteudo-funcionarios");
-  el.innerHTML = `<table><thead><tr><th>Nome</th><th>Cargo</th><th>Setor</th><th>Status</th></tr></thead><tbody>${LISTA_FUNCIONARIOS.map(f=>`<tr><td>${f.nome}</td><td>${f.cargo}</td><td>${f.setor}</td><td><span class="badge ${f.status?'badge-ativo':'badge-inativo'}">${f.status?'Ativo':'Inativo'}</span></td></tr>`).join('')}</tbody></table>`;
+  el.innerHTML = "Carregando...";
+
+  const { data, error } = await db
+    .from("usuarios")
+    .select("id, username, cargo, ativo")
+    .order("username");
+
+  if (error || !data) { el.innerHTML = "<p class='err'>Erro ao carregar usuários.</p>"; return; }
+
+  el.innerHTML = `<table>
+    <thead><tr><th>Nome / Usuário</th><th>Cargo</th><th>Status</th><th>Ações</th></tr></thead>
+    <tbody>
+      ${data.map(u => `
+        <tr>
+          <td>${u.username}</td>
+          <td>${u.cargo || "Sem cargo"}</td>
+          <td><span class="badge ${u.ativo ? 'badge-ativo' : 'badge-inativo'}">${u.ativo ? 'Ativo' : 'Inativo'}</span></td>
+          <td>
+            ${pode("editar_permissoes") ? `<button class="btn-sm" onclick="editarUsuario(${u.id})" style="margin-right:6px">✏️ Editar</button>` : ""}
+            ${pode("editar_permissoes") ? `<button class="btn-sm" onclick="toggleAtivo(${u.id},${u.ativo})">${u.ativo ? "Desativar" : "Ativar"}</button>` : ""}
+          </td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>`;
 }
 
 // ============================================================
@@ -217,10 +233,10 @@ function carregarDocumentos() {
 
   const el = document.getElementById("conteudo-documentos");
   const docs = [
-    {nome:"Contrato_2025.pdf",tipo:"Contrato",data:"02/05/2026",autor:"Maria Silva"},
-    {nome:"Relatorio_Mensal.xlsx",tipo:"Relatório",data:"01/05/2026",autor:"João Santos"},
-    {nome:"Politica_Seguranca.docx",tipo:"Política",data:"28/04/2026",autor:"Carlos Lima"},
-    {nome:"Ata_Reuniao_04.pdf",tipo:"Ata",data:"25/04/2026",autor:"Ana Oliveira"},
+    { nome: "Contrato_2025.pdf", tipo: "Contrato", data: "02/05/2026", autor: "Maria Silva" },
+    { nome: "Relatorio_Mensal.xlsx", tipo: "Relatório", data: "01/05/2026", autor: "João Santos" },
+    { nome: "Politica_Seguranca.docx", tipo: "Política", data: "28/04/2026", autor: "Carlos Lima" },
+    { nome: "Ata_Reuniao_04.pdf", tipo: "Ata", data: "25/04/2026", autor: "Ana Oliveira" },
   ];
   let h = `<table><thead><tr><th>Documento</th><th>Tipo</th><th>Data</th><th>Autor</th><th>Ações</th></tr></thead><tbody>`;
   docs.forEach(d => {
@@ -228,7 +244,7 @@ function carregarDocumentos() {
     if (pode("alterar_documento")) acts += `<button class="btn-sm" onclick="alert('Editar')">✏️</button> `;
     if (pode("assinar_documento")) acts += `<button class="btn-sm" onclick="alert('Assinar')">✍️</button> `;
     if (pode("excluir_documento")) acts += `<button class="btn-sm btn-danger" onclick="alert('Excluir')">🗑️</button>`;
-    h += `<tr><td>${d.nome}</td><td>${d.tipo}</td><td>${d.data}</td><td>${d.autor}</td><td>${acts||'—'}</td></tr>`;
+    h += `<tr><td>${d.nome}</td><td>${d.tipo}</td><td>${d.data}</td><td>${d.autor}</td><td>${acts || '—'}</td></tr>`;
   });
   el.innerHTML = h + '</tbody></table>';
 }
@@ -245,11 +261,11 @@ function carregarRelatorios() {
 
   const el = document.getElementById("conteudo-relatorios");
   const rels = [
-    {titulo:"Relatório de Vendas - Abril",tipo:"Vendas",data:"30/04/2026",status:"Concluído"},
-    {titulo:"Auditoria de Estoque Q1",tipo:"Estoque",data:"15/04/2026",status:"Concluído"},
-    {titulo:"Desempenho da Equipe",tipo:"RH",data:"10/04/2026",status:"Em análise"},
+    { titulo: "Relatório de Vendas - Abril", tipo: "Vendas", data: "30/04/2026", status: "Concluído" },
+    { titulo: "Auditoria de Estoque Q1", tipo: "Estoque", data: "15/04/2026", status: "Concluído" },
+    { titulo: "Desempenho da Equipe", tipo: "RH", data: "10/04/2026", status: "Em análise" },
   ];
-  el.innerHTML = rels.map(r => `<div class="module-card"><div class="module-card-info"><div class="module-card-title">${r.titulo}</div><div class="module-card-sub">${r.tipo} · ${r.data}</div></div><span class="badge ${r.status==='Concluído'?'badge-ativo':'badge-inativo'}">${r.status}</span></div>`).join('');
+  el.innerHTML = rels.map(r => `<div class="module-card"><div class="module-card-info"><div class="module-card-title">${r.titulo}</div><div class="module-card-sub">${r.tipo} · ${r.data}</div></div><span class="badge ${r.status === 'Concluído' ? 'badge-ativo' : 'badge-inativo'}">${r.status}</span></div>`).join('');
 }
 
 // ============================================================
@@ -281,13 +297,13 @@ function carregarEstoque() {
 
   const el = document.getElementById("conteudo-estoque");
   const itens = [
-    {item:"Papel A4 (resma)",qtd:120,min:50,status:"Normal"},
-    {item:"Toner impressora",qtd:8,min:5,status:"Normal"},
-    {item:"Caneta esferográfica",qtd:45,min:30,status:"Normal"},
-    {item:"Envelope pardo",qtd:12,min:20,status:"Baixo"},
-    {item:"Pasta suspensa",qtd:3,min:15,status:"Crítico"},
+    { item: "Papel A4 (resma)", qtd: 120, min: 50, status: "Normal" },
+    { item: "Toner impressora", qtd: 8, min: 5, status: "Normal" },
+    { item: "Caneta esferográfica", qtd: 45, min: 30, status: "Normal" },
+    { item: "Envelope pardo", qtd: 12, min: 20, status: "Baixo" },
+    { item: "Pasta suspensa", qtd: 3, min: 15, status: "Crítico" },
   ];
-  el.innerHTML = `<table><thead><tr><th>Item</th><th>Quantidade</th><th>Mínimo</th><th>Status</th></tr></thead><tbody>${itens.map(i=>`<tr><td>${i.item}</td><td>${i.qtd}</td><td>${i.min}</td><td><span class="badge ${i.status==='Normal'?'badge-ativo':'badge-inativo'}">${i.status}</span></td></tr>`).join('')}</tbody></table>`;
+  el.innerHTML = `<table><thead><tr><th>Item</th><th>Quantidade</th><th>Mínimo</th><th>Status</th></tr></thead><tbody>${itens.map(i => `<tr><td>${i.item}</td><td>${i.qtd}</td><td>${i.min}</td><td><span class="badge ${i.status === 'Normal' ? 'badge-ativo' : 'badge-inativo'}">${i.status}</span></td></tr>`).join('')}</tbody></table>`;
 }
 
 // ============================================================
@@ -299,7 +315,7 @@ function carregarMonitoramento() {
   if (pode("ver_cameras")) {
     html += `
       <div class="cam-grid">
-        ${["Entrada principal","Sala de operações","Estoque","Financeiro","RH","TI"].map(cam => `
+        ${["Entrada principal", "Sala de operações", "Estoque", "Financeiro", "RH", "TI"].map(cam => `
           <div class="cam-card">
             <div class="cam-preview ${pode("monitorar_ao_vivo") ? "" : "no-access"}">
               ${pode("monitorar_ao_vivo") ? "● AO VIVO" : "⬛ SEM ACESSO"}
@@ -309,8 +325,8 @@ function carregarMonitoramento() {
         `).join("")}
       </div>`;
   }
-  if (pode("ver_historico_acesso"))   html += `<button onclick="alert('Histórico de acessos')">🕓 Histórico de acessos</button>`;
-  if (pode("ver_localizacao"))        html += `<button onclick="alert('Localização da equipe')">📍 Localização da equipe</button>`;
+  if (pode("ver_historico_acesso")) html += `<button onclick="alert('Histórico de acessos')">🕓 Histórico de acessos</button>`;
+  if (pode("ver_localizacao")) html += `<button onclick="alert('Localização da equipe')">📍 Localização da equipe</button>`;
   if (pode("exportar_monitoramento")) html += `<button onclick="alert('Exportar registros')">⬇ Exportar registros</button>`;
   el.innerHTML = html;
 }
@@ -375,18 +391,107 @@ async function carregarListaUsuarios() {
 }
 
 // ============================================================
+// CARGOS
+// ============================================================
+function carregarCargos() {
+  const el = document.getElementById("conteudo-cargos");
+  if (!pode("gerenciar_cargos")) {
+    el.innerHTML = "<p class='err'>Acesso negado.</p>";
+    return;
+  }
+
+  let html = "<h3 style='margin-bottom:10px'>Cargos do Sistema</h3>";
+
+  Object.keys(CARGOS_PRESETS).forEach(nome => {
+    const cargo = CARGOS_PRESETS[nome];
+    html += `
+      <div class="usuario-card">
+        <div class="usuario-card-header">
+          <div>
+            <span class="usuario-nome">${nome}</span>
+            <div class="usuario-cargo">${cargo.desc}</div>
+            <div style="font-size: 11px; opacity: 0.7; margin-top: 4px;">
+              ${cargo.funcoes.length} permissões atribuídas
+            </div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button onclick="editarCargo('${nome}')">Editar Permissões</button>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  el.innerHTML = html;
+}
+
+function editarCargo(nome) {
+  const cargo = CARGOS_PRESETS[nome];
+  if (!cargo) return;
+
+  document.getElementById("fc-nome-original").value = nome;
+  document.getElementById("fc-nome").value = nome;
+  document.getElementById("fc-desc").value = cargo.desc;
+
+  const mapa = {};
+  cargo.funcoes.forEach(f => { mapa[f] = true; });
+  renderFormPermissoesCargo(mapa);
+
+  document.getElementById("fc-err").textContent = "";
+  document.getElementById("fc-ok").textContent = "";
+  document.getElementById("form-cargo").classList.remove("hidden");
+  document.getElementById("form-cargo").scrollIntoView({ behavior: "smooth" });
+}
+
+function renderFormPermissoesCargo(marcadas) {
+  const el = document.getElementById("fc-permissoes");
+  el.innerHTML = Object.entries(FUNCOES_GRUPOS).map(([grupo, funcoes]) => `
+    <div class="perm-grupo">
+      <h4>${grupo}</h4>
+      ${funcoes.map(f => `
+        <label>
+          <input type="checkbox" name="perm_cargo" value="${f.key}" ${marcadas[f.key] ? "checked" : ""}>
+          ${f.label}
+        </label>
+      `).join("")}
+    </div>
+  `).join("");
+}
+
+function fecharFormCargo() {
+  document.getElementById("form-cargo").classList.add("hidden");
+}
+
+function salvarCargo() {
+  const nomeOriginal = document.getElementById("fc-nome-original").value;
+  const desc = document.getElementById("fc-desc").value;
+  const funcoesMarcadas = [...document.querySelectorAll("input[name=perm_cargo]:checked")].map(c => c.value);
+
+  if (CARGOS_PRESETS[nomeOriginal]) {
+    CARGOS_PRESETS[nomeOriginal].desc = desc;
+    CARGOS_PRESETS[nomeOriginal].funcoes = funcoesMarcadas;
+
+    document.getElementById("fc-ok").textContent = "Cargo atualizado com sucesso!";
+    setTimeout(() => {
+      fecharFormCargo();
+      carregarCargos();
+    }, 1200);
+  }
+}
+
+// ============================================================
 // FORMULÁRIO DE CRIAR / EDITAR USUÁRIO
 // ============================================================
 function abrirFormUsuario() {
   document.getElementById("form-usuario-titulo").textContent = "Novo usuário";
-  document.getElementById("form-usuario-id").value    = "";
-  document.getElementById("fu-username").value        = "";
-  document.getElementById("fu-senha").value           = "";
-  document.getElementById("fu-cargo").value           = "";
+  document.getElementById("form-usuario-id").value = "";
+  document.getElementById("fu-username").value = "";
+  document.getElementById("fu-senha").value = "";
+  document.getElementById("fu-cargo").value = "";
   document.getElementById("fu-cargo-desc").classList.add("hidden");
   document.getElementById("fu-cargo-desc").textContent = "";
-  document.getElementById("fu-err").textContent       = "";
-  document.getElementById("fu-ok").textContent        = "";
+  document.getElementById("fu-err").textContent = "";
+  document.getElementById("fu-ok").textContent = "";
   renderFormPermissoes({});
   document.getElementById("form-usuario").classList.remove("hidden");
   document.getElementById("form-usuario").scrollIntoView({ behavior: "smooth" });
@@ -396,7 +501,7 @@ async function editarUsuario(id) {
   document.getElementById("form-usuario-titulo").textContent = "Editar usuário";
   document.getElementById("form-usuario-id").value = id;
   document.getElementById("fu-err").textContent = "";
-  document.getElementById("fu-ok").textContent  = "";
+  document.getElementById("fu-ok").textContent = "";
 
   const { data: u } = await db.from("usuarios").select("username,cargo,papel_id").eq("id", id).single();
   const [{ data: rbacPerms }, { data: aclPerms }] = await Promise.all([
@@ -506,7 +611,7 @@ function renderFormPermissoes(marcadas, baseMapa = {}, overrideMapa = {}) {
 }
 
 async function salvarUsuario() {
-  const id       = document.getElementById("form-usuario-id").value;
+  const id = document.getElementById("form-usuario-id").value;
   const username = document.getElementById("fu-username").value.trim();
   const senha    = document.getElementById("fu-senha").value.trim();
   const papelId  = parseInt(document.getElementById("fu-cargo").value);
@@ -580,7 +685,14 @@ async function salvarUsuario() {
     );
   }
 
-  setTimeout(() => { fecharFormUsuario(); carregarListaUsuarios(); }, 1200);
+  // Incorpora atualiz. da task-pedro: recarrega func. se a tela estiver ativa
+  setTimeout(() => {
+    fecharFormUsuario();
+    carregarListaUsuarios();
+    if (document.getElementById("page-funcionarios")?.classList.contains("active")) {
+      carregarFuncionarios();
+    }
+  }, 1200);
 }
 
 // ============================================================
@@ -591,4 +703,7 @@ async function toggleAtivo(id, ativoAtual) {
   if (!confirm(`Deseja ${acao} este usuário?`)) return;
   await db.from("usuarios").update({ ativo: !ativoAtual }).eq("id", id);
   carregarListaUsuarios();
+  if (document.getElementById("page-funcionarios")?.classList.contains("active")) {
+    carregarFuncionarios();
+  }
 }
