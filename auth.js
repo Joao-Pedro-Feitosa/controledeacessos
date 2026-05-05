@@ -8,7 +8,7 @@ async function doLogin() {
 
   const { data: usuario, error } = await db
     .from("usuarios")
-    .select("id, username, senha, cargo, ativo, primeiro_login")
+    .select("id, username, senha, cargo, papel_id, ativo, primeiro_login")
     .eq("username", username)
     .single();
 
@@ -18,12 +18,13 @@ async function doLogin() {
 
   errEl.textContent = "";
 
-  const permissoes = await carregarPermissoes(usuario.id, usuario.cargo);
+  const permissoes = await carregarPermissoes(usuario.id, usuario.papel_id);
 
   window.usuarioAtual = {
     id:            usuario.id,
     username:      usuario.username,
     cargo:         usuario.cargo || "Sem cargo",
+    papelId:       usuario.papel_id,
     primeiroLogin: usuario.primeiro_login,
     permissoes,
   };
@@ -37,31 +38,37 @@ async function doLogin() {
   entrarNoApp();
 }
 
-// SEGURANÇA (Falha #2): cargos autorizados a criar/editar usuários (RBAC por papel).
-// Mesmo que um registro ACL inválido exista no banco, a camada de
-// runtime recusa a permissão se o cargo não estiver nesta lista.
-const CARGOS_AUTORIZADOS_CRIAR_USUARIO = new Set([
-  "Gerente", "Coordenadora", "Analista de RH",
-  // null/undefined = admin (sem cargo definido no schema)
-]);
+/**
+ * Mescla RBAC + ACL para obter as permissões finais do usuário.
+ *
+ * Camada 1 — RBAC (papel): busca funcoes em rbac_permissoes pelo papel_id.
+ *   Todos os usuários do mesmo papel herdam as mesmas permissões base.
+ *   Nenhuma linha extra é criada por usuário — apenas o papel é atribuído.
+ *
+ * Camada 2 — ACL (individual): busca overrides em permissoes_usuario.
+ *   permitido = TRUE  → CONCEDE a permissão (mesmo que o papel não tenha)
+ *   permitido = FALSE → NEGA  a permissão (mesmo que o papel tenha)
+ *
+ * Resultado: mapa final { funcao: true } com RBAC ± overrides ACL.
+ */
+async function carregarPermissoes(usuarioId, papelId) {
+  const [{ data: rbacData }, { data: aclData }] = await Promise.all([
+    db.from("rbac_permissoes").select("funcao").eq("papel_id", papelId),
+    db.from("permissoes_usuario").select("funcao, permitido").eq("usuario_id", usuarioId),
+  ]);
 
-async function carregarPermissoes(usuarioId, cargo) {
-  const { data } = await db
-    .from("permissoes_usuario")
-    .select("funcao")
-    .eq("usuario_id", usuarioId)
-    .eq("permitido", true);
-
+  // Camada 1: permissões base do papel (RBAC)
   const mapa = {};
-  (data || []).forEach(({ funcao }) => { mapa[funcao] = true; });
+  (rbacData || []).forEach(({ funcao }) => { mapa[funcao] = true; });
 
-  // Aplica filtro RBAC: remove permissões sensíveis se o cargo não for autorizado.
-  // Protege contra registros ACL corrompidos ou atribuições incorretas.
-  const cargoPermitido = !cargo || CARGOS_AUTORIZADOS_CRIAR_USUARIO.has(cargo);
-  if (!cargoPermitido) {
-    delete mapa["criar_usuario"];
-    delete mapa["editar_permissoes"];
-  }
+  // Camada 2: overrides individuais (ACL) — podem conceder ou negar
+  (aclData || []).forEach(({ funcao, permitido }) => {
+    if (permitido) {
+      mapa[funcao] = true;   // GRANT: concede mesmo não estando no papel
+    } else {
+      delete mapa[funcao];   // DENY: remove mesmo que o papel tenha
+    }
+  });
 
   return mapa;
 }
