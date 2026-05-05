@@ -159,13 +159,3 @@ CREATE TABLE permissoes_usuario (
 );
 
 -- (sem overrides iniciais — todos usam apenas o papel base)
-
-
--- 6. ACL_PERMISSOES (mantida por compatibilidade de schema — não usada pelo JS)
-CREATE TABLE acl_permissoes (
-  id          SERIAL PRIMARY KEY,
-  usuario_id  INTEGER NOT NULL REFERENCES usuarios(id),
-  recurso_id  INTEGER NOT NULL REFERENCES recursos(id),
-  acao        VARCHAR(20) NOT NULL,
-  UNIQUE (usuario_id, recurso_id, acao)
-);
