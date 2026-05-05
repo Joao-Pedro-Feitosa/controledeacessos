@@ -18,7 +18,7 @@ async function doLogin() {
 
   errEl.textContent = "";
 
-  const permissoes = await carregarPermissoes(usuario.id);
+  const permissoes = await carregarPermissoes(usuario.id, usuario.cargo);
 
   window.usuarioAtual = {
     id:            usuario.id,
@@ -37,7 +37,15 @@ async function doLogin() {
   entrarNoApp();
 }
 
-async function carregarPermissoes(usuarioId) {
+// SEGURANÇA (Falha #2): cargos autorizados a criar/editar usuários (RBAC por papel).
+// Mesmo que um registro ACL inválido exista no banco, a camada de
+// runtime recusa a permissão se o cargo não estiver nesta lista.
+const CARGOS_AUTORIZADOS_CRIAR_USUARIO = new Set([
+  "Gerente", "Coordenadora", "Analista de RH",
+  // null/undefined = admin (sem cargo definido no schema)
+]);
+
+async function carregarPermissoes(usuarioId, cargo) {
   const { data } = await db
     .from("permissoes_usuario")
     .select("funcao")
@@ -46,6 +54,15 @@ async function carregarPermissoes(usuarioId) {
 
   const mapa = {};
   (data || []).forEach(({ funcao }) => { mapa[funcao] = true; });
+
+  // Aplica filtro RBAC: remove permissões sensíveis se o cargo não for autorizado.
+  // Protege contra registros ACL corrompidos ou atribuições incorretas.
+  const cargoPermitido = !cargo || CARGOS_AUTORIZADOS_CRIAR_USUARIO.has(cargo);
+  if (!cargoPermitido) {
+    delete mapa["criar_usuario"];
+    delete mapa["editar_permissoes"];
+  }
+
   return mapa;
 }
 

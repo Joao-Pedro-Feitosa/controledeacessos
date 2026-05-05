@@ -70,7 +70,8 @@ const CARGOS_PRESETS = {
     funcoes: [
       "ver_funcionarios",
       "ver_relatorios",
-      "acesso_redes","ver_logs","config_sistema","criar_usuario","editar_permissoes",
+      // SEGURANÇA: criar_usuario e editar_permissoes removidos — escopo técnico, sem gestão de contas
+      "acesso_redes","ver_logs","config_sistema",
       "ver_cameras","monitorar_ao_vivo","ver_historico_acesso","ver_localizacao","exportar_monitoramento",
     ]
   },
@@ -492,6 +493,17 @@ async function salvarUsuario() {
   const errEl    = document.getElementById("fu-err");
   const okEl     = document.getElementById("fu-ok");
   errEl.textContent = ""; okEl.textContent = "";
+
+  // SEGURANÇA (Falha #3): revalidar permissão no momento da execução,
+  // impedindo bypass via chamada direta no console ou manipulação do DOM.
+  if (id && !pode("editar_permissoes")) {
+    errEl.textContent = "⛔ Permissão negada: você não pode editar usuários.";
+    return;
+  }
+  if (!id && !pode("criar_usuario")) {
+    errEl.textContent = "⛔ Permissão negada: você não pode criar usuários.";
+    return;
+  }
 
   if (!username) { errEl.textContent = "Informe o nome de usuário."; return; }
   if (!cargo)    { errEl.textContent = "Selecione um cargo."; return; }
