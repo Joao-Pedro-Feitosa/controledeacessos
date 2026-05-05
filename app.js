@@ -393,29 +393,45 @@ async function carregarListaUsuarios() {
 // ============================================================
 // CARGOS
 // ============================================================
-function carregarCargos() {
+async function carregarCargos() {
   const el = document.getElementById("conteudo-cargos");
+  if (!el) return;
   if (!pode("gerenciar_cargos")) {
     el.innerHTML = "<p class='err'>Acesso negado.</p>";
     return;
   }
 
-  let html = "<h3 style='margin-bottom:10px'>Cargos do Sistema</h3>";
+  el.innerHTML = "Carregando cargos...";
 
-  Object.keys(CARGOS_PRESETS).forEach(nome => {
-    const cargo = CARGOS_PRESETS[nome];
+  // Busca todos os papéis e suas permissões RBAC do Supabase
+  const { data: papeis, error: errPapeis } = await db.from("papeis").select("id, nome").order("id");
+  if (errPapeis || !papeis) { el.innerHTML = "<p class='err'>Erro ao carregar cargos.</p>"; return; }
+
+  const { data: rbacTodos } = await db.from("rbac_permissoes").select("papel_id, funcao");
+
+  // Monta um mapa { papel_id: [funcoes] }
+  const permsPorPapel = {};
+  (rbacTodos || []).forEach(({ papel_id, funcao }) => {
+    if (!permsPorPapel[papel_id]) permsPorPapel[papel_id] = [];
+    permsPorPapel[papel_id].push(funcao);
+  });
+
+  let html = "<h3 style='margin-bottom:10px'>Cargos do Sistema</h3>";
+  papeis.forEach(papel => {
+    const funcoes = permsPorPapel[papel.id] || [];
+    const desc    = CARGOS_DESCS[papel.nome] || "";
     html += `
       <div class="usuario-card">
         <div class="usuario-card-header">
           <div>
-            <span class="usuario-nome">${nome}</span>
-            <div class="usuario-cargo">${cargo.desc}</div>
+            <span class="usuario-nome">${papel.nome}</span>
+            ${desc ? `<div class="usuario-cargo">${desc}</div>` : ""}
             <div style="font-size: 11px; opacity: 0.7; margin-top: 4px;">
-              ${cargo.funcoes.length} permissões atribuídas
+              ${funcoes.length} permissões atribuídas
             </div>
           </div>
           <div style="display:flex;gap:6px">
-            <button onclick="editarCargo('${nome}')">Editar Permissões</button>
+            <button onclick="editarCargo(${papel.id},'${papel.nome.replace(/'/g, "&apos;")}')">Editar Permissões</button>
           </div>
         </div>
       </div>
@@ -425,16 +441,20 @@ function carregarCargos() {
   el.innerHTML = html;
 }
 
-function editarCargo(nome) {
-  const cargo = CARGOS_PRESETS[nome];
-  if (!cargo) return;
-
-  document.getElementById("fc-nome-original").value = nome;
-  document.getElementById("fc-nome").value = nome;
-  document.getElementById("fc-desc").value = cargo.desc;
+async function editarCargo(papelId, nome) {
+  // Busca permissões atuais deste papel
+  const { data: permsAtuais } = await db
+    .from("rbac_permissoes")
+    .select("funcao")
+    .eq("papel_id", papelId);
 
   const mapa = {};
-  cargo.funcoes.forEach(f => { mapa[f] = true; });
+  (permsAtuais || []).forEach(({ funcao }) => { mapa[funcao] = true; });
+
+  document.getElementById("fc-nome-original").value = papelId;
+  document.getElementById("fc-nome").value = nome;
+  document.getElementById("fc-desc").value = CARGOS_DESCS[nome] || "";
+
   renderFormPermissoesCargo(mapa);
 
   document.getElementById("fc-err").textContent = "";
@@ -462,21 +482,32 @@ function fecharFormCargo() {
   document.getElementById("form-cargo").classList.add("hidden");
 }
 
-function salvarCargo() {
-  const nomeOriginal = document.getElementById("fc-nome-original").value;
-  const desc = document.getElementById("fc-desc").value;
+async function salvarCargo() {
+  const papelId  = parseInt(document.getElementById("fc-nome-original").value);
+  const errEl    = document.getElementById("fc-err");
+  const okEl     = document.getElementById("fc-ok");
+  errEl.textContent = ""; okEl.textContent = "";
+
+  if (!papelId) { errEl.textContent = "Erro: cargo inválido."; return; }
+
   const funcoesMarcadas = [...document.querySelectorAll("input[name=perm_cargo]:checked")].map(c => c.value);
 
-  if (CARGOS_PRESETS[nomeOriginal]) {
-    CARGOS_PRESETS[nomeOriginal].desc = desc;
-    CARGOS_PRESETS[nomeOriginal].funcoes = funcoesMarcadas;
+  // Remove todas as permissões antigas deste papel e insere as novas
+  const { error: errDel } = await db.from("rbac_permissoes").delete().eq("papel_id", papelId);
+  if (errDel) { errEl.textContent = "Erro ao limpar permissões antigas."; return; }
 
-    document.getElementById("fc-ok").textContent = "Cargo atualizado com sucesso!";
-    setTimeout(() => {
-      fecharFormCargo();
-      carregarCargos();
-    }, 1200);
+  if (funcoesMarcadas.length) {
+    const { error: errIns } = await db.from("rbac_permissoes").insert(
+      funcoesMarcadas.map(f => ({ papel_id: papelId, funcao: f }))
+    );
+    if (errIns) { errEl.textContent = "Erro ao salvar permissões."; return; }
   }
+
+  okEl.textContent = "Cargo atualizado com sucesso!";
+  setTimeout(() => {
+    fecharFormCargo();
+    carregarCargos();
+  }, 1200);
 }
 
 // ============================================================
