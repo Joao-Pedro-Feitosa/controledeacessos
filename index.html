@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,248 +8,312 @@
   <title>Controle de Acesso — RBAC + ACL Demo</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<div class="app-wrapper">
+  <div class="app-wrapper">
 
-  <!-- ============================== -->
-  <!-- TELA 1: LOGIN                  -->
-  <!-- ============================== -->
-  <div id="tela-login" class="hidden">
-    <span class="login-badge">🔐 Demonstração RBAC + ACL</span>
-    <h1>Controle de Acesso</h1>
-    <p class="subtitle">Sistema de Gestão de Empresa — Protótipo educacional</p>
+    <!-- ============================== -->
+    <!-- TELA 1: LOGIN                  -->
+    <!-- ============================== -->
+    <div id="tela-login" class="hidden">
+      <span class="login-badge">🔐 Demonstração RBAC + ACL</span>
+      <h1>Controle de Acesso</h1>
+      <p class="subtitle">Sistema de Gestão de Empresa — Protótipo educacional</p>
 
-    <div class="login-box glass">
-      <h2>Entrar</h2>
-      <label>
-        <span>Usuário</span>
-        <input id="inp-user" type="text" placeholder="Digite seu username">
-      </label>
-      <label>
-        <span>Senha</span>
-        <input id="inp-pass" type="password" placeholder="••••••••••">
-      </label>
-      <button class="btn-primary" onclick="doLogin()">Entrar no sistema</button>
-      <p id="login-err" class="err" style="margin-top:10px;text-align:center"></p>
-    </div>
-  </div>
-
-  <!-- ============================== -->
-  <!-- TELA 2: TROCAR SENHA           -->
-  <!-- ============================== -->
-  <div id="tela-trocar-senha" class="hidden">
-    <h1 style="margin-bottom:24px;text-align:center">Definir Nova Senha</h1>
-    <div id="aviso-primeiro-login" class="aviso hidden" style="max-width:420px;margin:0 auto 16px">
-      <span>⚠️</span> <b>Primeiro acesso.</b> Defina uma senha permanente para continuar.
-    </div>
-    <div class="senha-box glass" style="margin:0 auto">
-      <label>
-        <span>Nova senha</span>
-        <input id="inp-nova-senha" type="password"
-               oninput="renderizarCriterios(this.value,'criterios-senha')">
-      </label>
-      <div id="criterios-senha" style="margin:4px 0 14px;line-height:1.9;"></div>
-      <label>
-        <span>Confirmar senha</span>
-        <input id="inp-confirmar-senha" type="password">
-      </label>
-      <button class="btn-primary" onclick="doTrocarSenha()">Salvar nova senha</button>
-      <p id="trocar-err" class="err" style="margin-top:10px;text-align:center"></p>
-      <p id="trocar-ok"  class="ok"  style="margin-top:10px;text-align:center"></p>
-    </div>
-  </div>
-
-  <!-- ============================== -->
-  <!-- TELA 3: APP (Sidebar Layout)   -->
-  <!-- ============================== -->
-  <div id="tela-app" class="hidden">
-
-    <!-- Top Bar -->
-    <div class="topbar glass">
-      <div class="topbar-left">
-        <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">
-          <span></span><span></span><span></span>
-        </button>
-        <h1>Controle de Acesso</h1>
-        <span class="info-pill pill-rbac">RBAC</span>
-        <span class="info-pill pill-acl">ACL</span>
-      </div>
-      <div class="topbar-right">
-        <div class="topbar-user">
-          <div class="topbar-avatar" id="topbar-avatar"></div>
-          <div class="topbar-info">
-            <div class="topbar-name" id="lbl-user"></div>
-            <div class="topbar-role" id="lbl-papel"></div>
-          </div>
-        </div>
-        <button class="btn-sm btn-logout" onclick="doLogout()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          Sair
-        </button>
+      <div class="login-box glass">
+        <h2>Entrar</h2>
+        <label>
+          <span>Usuário</span>
+          <input id="inp-user" type="text" placeholder="Digite seu username">
+        </label>
+        <label>
+          <span>Senha</span>
+          <input id="inp-pass" type="password" placeholder="••••••••••">
+        </label>
+        <button class="btn-primary" onclick="doLogin()">Entrar no sistema</button>
+        <p id="login-err" class="err" style="margin-top:10px;text-align:center"></p>
       </div>
     </div>
 
-    <!-- Main Layout: Sidebar + Content -->
-    <div class="app-layout">
+    <!-- ============================== -->
+    <!-- TELA 2: TROCAR SENHA           -->
+    <!-- ============================== -->
+    <div id="tela-trocar-senha" class="hidden">
+      <h1 style="margin-bottom:24px;text-align:center">Definir Nova Senha</h1>
+      <div id="aviso-primeiro-login" class="aviso hidden" style="max-width:420px;margin:0 auto 16px">
+        <span>⚠️</span> <b>Primeiro acesso.</b> Defina uma senha permanente para continuar.
+      </div>
+      <div class="senha-box glass" style="margin:0 auto">
+        <label>
+          <span>Nova senha</span>
+          <input id="inp-nova-senha" type="password" oninput="renderizarCriterios(this.value,'criterios-senha')">
+        </label>
+        <div id="criterios-senha" style="margin:4px 0 14px;line-height:1.9;"></div>
+        <label>
+          <span>Confirmar senha</span>
+          <input id="inp-confirmar-senha" type="password">
+        </label>
+        <button class="btn-primary" onclick="doTrocarSenha()">Salvar nova senha</button>
+        <p id="trocar-err" class="err" style="margin-top:10px;text-align:center"></p>
+        <p id="trocar-ok" class="ok" style="margin-top:10px;text-align:center"></p>
+      </div>
+    </div>
 
-      <!-- Sidebar -->
-      <aside class="sidebar glass" id="sidebar">
-        <nav class="sidebar-nav" id="nav-principal">
-          <div class="sidebar-section-title">PRINCIPAL</div>
-          <button id="nav-bemvindo" class="sidebar-btn active" onclick="irPara('bemvindo')">
-            <span class="sidebar-icon">🏠</span>
-            <span class="sidebar-label">Início</span>
-          </button>
+    <!-- ============================== -->
+    <!-- TELA 3: APP (Sidebar Layout)   -->
+    <!-- ============================== -->
+    <div id="tela-app" class="hidden">
 
-          <div class="sidebar-section-title">MÓDULOS</div>
-          <button id="nav-funcionarios" class="sidebar-btn hidden" onclick="irPara('funcionarios')">
-            <span class="sidebar-icon">👥</span>
-            <span class="sidebar-label">Funcionários</span>
+      <!-- Top Bar -->
+      <div class="topbar glass">
+        <div class="topbar-left">
+          <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">
+            <span></span><span></span><span></span>
           </button>
-          <button id="nav-documentos" class="sidebar-btn hidden" onclick="irPara('documentos')">
-            <span class="sidebar-icon">📁</span>
-            <span class="sidebar-label">Documentos</span>
-          </button>
-          <button id="nav-relatorios" class="sidebar-btn hidden" onclick="irPara('relatorios')">
-            <span class="sidebar-icon">📄</span>
-            <span class="sidebar-label">Relatórios</span>
-          </button>
-          <button id="nav-financeiro" class="sidebar-btn hidden" onclick="irPara('financeiro')">
-            <span class="sidebar-icon">💰</span>
-            <span class="sidebar-label">Financeiro</span>
-          </button>
-          <button id="nav-estoque" class="sidebar-btn hidden" onclick="irPara('estoque')">
-            <span class="sidebar-icon">📦</span>
-            <span class="sidebar-label">Estoque</span>
-          </button>
-          <button id="nav-monitoramento" class="sidebar-btn hidden" onclick="irPara('monitoramento')">
-            <span class="sidebar-icon">📷</span>
-            <span class="sidebar-label">Monitoramento</span>
-          </button>
-
-          <div class="sidebar-section-title">ADMINISTRAÇÃO</div>
-          <button id="nav-sistema" class="sidebar-btn hidden" onclick="irPara('sistema')">
-            <span class="sidebar-icon">⚙️</span>
-            <span class="sidebar-label">Sistema</span>
-          </button>
-          <button class="sidebar-btn" onclick="irPara('perfil')">
-            <span class="sidebar-icon">🔑</span>
-            <span class="sidebar-label">Alterar Senha</span>
-          </button>
-        </nav>
-      </aside>
-
-      <!-- Content Area -->
-      <main class="content-area">
-
-        <!-- PAGE: Boas-vindas -->
-        <div id="page-bemvindo" class="page">
-          <div class="page-header">
-            <div>
-              <p class="bv-nome" id="bv-nome"></p>
-              <p class="bv-cargo" id="bv-cargo"></p>
+          <h1>Controle de Acesso</h1>
+          <span class="info-pill pill-rbac">RBAC</span>
+          <span class="info-pill pill-acl">ACL</span>
+        </div>
+        <div class="topbar-right">
+          <div class="topbar-user">
+            <div class="topbar-avatar" id="topbar-avatar"></div>
+            <div class="topbar-info">
+              <div class="topbar-name" id="lbl-user"></div>
+              <div class="topbar-role" id="lbl-papel"></div>
             </div>
           </div>
+          <button class="btn-sm btn-logout" onclick="doLogout()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            Sair
+          </button>
+        </div>
+      </div>
 
-          <div class="dashboard-stats">
-            <div class="stat-card glass">
-              <div class="stat-icon" style="background:rgba(108,99,255,0.15);color:#a78bfa">👥</div>
-              <div class="stat-info">
-                <div class="stat-value" id="stat-funcionarios">—</div>
-                <div class="stat-label">Funcionários ativos</div>
+      <!-- Main Layout: Sidebar + Content -->
+      <div class="app-layout">
+
+        <!-- Sidebar -->
+        <aside class="sidebar glass" id="sidebar">
+          <nav class="sidebar-nav" id="nav-principal">
+            <div class="sidebar-section-title">PRINCIPAL</div>
+            <button id="nav-bemvindo" class="sidebar-btn active" onclick="irPara('bemvindo')">
+              <span class="sidebar-icon">🏠</span>
+              <span class="sidebar-label">Início</span>
+            </button>
+
+            <div class="sidebar-section-title">MÓDULOS</div>
+            <button id="nav-funcionarios" class="sidebar-btn hidden" onclick="irPara('funcionarios')">
+              <span class="sidebar-icon">👥</span>
+              <span class="sidebar-label">Usuários / Funcionários</span>
+            </button>
+            <button id="nav-documentos" class="sidebar-btn hidden" onclick="irPara('documentos')">
+              <span class="sidebar-icon">📁</span>
+              <span class="sidebar-label">Documentos</span>
+            </button>
+            <button id="nav-relatorios" class="sidebar-btn hidden" onclick="irPara('relatorios')">
+              <span class="sidebar-icon">📄</span>
+              <span class="sidebar-label">Relatórios</span>
+            </button>
+            <button id="nav-financeiro" class="sidebar-btn hidden" onclick="irPara('financeiro')">
+              <span class="sidebar-icon">💰</span>
+              <span class="sidebar-label">Financeiro</span>
+            </button>
+            <button id="nav-estoque" class="sidebar-btn hidden" onclick="irPara('estoque')">
+              <span class="sidebar-icon">📦</span>
+              <span class="sidebar-label">Estoque</span>
+            </button>
+            <button id="nav-monitoramento" class="sidebar-btn hidden" onclick="irPara('monitoramento')">
+              <span class="sidebar-icon">📷</span>
+              <span class="sidebar-label">Monitoramento</span>
+            </button>
+
+            <div class="sidebar-section-title">ADMINISTRAÇÃO</div>
+            <button id="nav-sistema" class="sidebar-btn hidden" onclick="irPara('sistema')">
+              <span class="sidebar-icon">⚙️</span>
+              <span class="sidebar-label">Sistema</span>
+            </button>
+            <button id="nav-cargos" class="sidebar-btn hidden" onclick="irPara('cargos')">
+              <span class="sidebar-icon">🏢</span>
+              <span class="sidebar-label">Cargos</span>
+            </button>
+            <button class="sidebar-btn" onclick="irPara('perfil')">
+              <span class="sidebar-icon">🔑</span>
+              <span class="sidebar-label">Alterar Senha</span>
+            </button>
+          </nav>
+        </aside>
+
+        <!-- Content Area -->
+        <main class="content-area">
+
+          <!-- PAGE: Boas-vindas -->
+          <div id="page-bemvindo" class="page">
+            <div class="page-header">
+              <div>
+                <p class="bv-nome" id="bv-nome"></p>
+                <p class="bv-cargo" id="bv-cargo"></p>
               </div>
             </div>
-            <div class="stat-card glass">
-              <div class="stat-icon" style="background:rgba(52,211,153,0.12);color:#34d399">📁</div>
-              <div class="stat-info">
-                <div class="stat-value" id="stat-usuarios-total">—</div>
-                <div class="stat-label">Usuários cadastrados</div>
+
+            <div class="dashboard-stats">
+              <div class="stat-card glass">
+                <div class="stat-icon" style="background:rgba(108,99,255,0.15);color:#a78bfa">👥</div>
+                <div class="stat-info">
+                  <div class="stat-value" id="stat-funcionarios">—</div>
+                  <div class="stat-label">Usuários / Funcionários ativos</div>
+                </div>
+              </div>
+              <div class="stat-card glass">
+                <div class="stat-icon" style="background:rgba(52,211,153,0.12);color:#34d399">📁</div>
+                <div class="stat-info">
+                  <div class="stat-value" id="stat-usuarios-total">—</div>
+                  <div class="stat-label">Usuários cadastrados</div>
+                </div>
+              </div>
+              <div class="stat-card glass">
+                <div class="stat-icon" style="background:rgba(248,113,113,0.12);color:#f87171">🚫</div>
+                <div class="stat-info">
+                  <div class="stat-value" id="stat-inativos">—</div>
+                  <div class="stat-label">Usuários inativos</div>
+                </div>
+              </div>
+              <div class="stat-card glass">
+                <div class="stat-icon" style="background:rgba(251,191,36,0.1);color:#fbbf24">🔑</div>
+                <div class="stat-info">
+                  <div class="stat-value" id="stat-permissoes">—</div>
+                  <div class="stat-label">Permissões atribuídas</div>
+                </div>
               </div>
             </div>
-            <div class="stat-card glass">
-              <div class="stat-icon" style="background:rgba(248,113,113,0.12);color:#f87171">🚫</div>
-              <div class="stat-info">
-                <div class="stat-value" id="stat-inativos">—</div>
-                <div class="stat-label">Usuários inativos</div>
+
+
+          </div>
+
+          <!-- PAGE: Funcionários -->
+          <div id="page-funcionarios" class="page">
+            <div class="page-header">
+              <h2>👥 Usuários / Funcionários</h2>
+              <div class="page-actions" id="acoes-funcionarios"></div>
+            </div>
+            <div id="conteudo-funcionarios"></div>
+          </div>
+
+          <!-- PAGE: Documentos -->
+          <div id="page-documentos" class="page">
+            <div class="page-header">
+              <h2>📁 Documentos</h2>
+              <div class="page-actions" id="acoes-documentos"></div>
+            </div>
+            <div id="conteudo-documentos"></div>
+          </div>
+
+          <!-- PAGE: Relatórios -->
+          <div id="page-relatorios" class="page">
+            <div class="page-header">
+              <h2>📄 Relatórios</h2>
+              <div class="page-actions" id="acoes-relatorios"></div>
+            </div>
+            <div id="conteudo-relatorios"></div>
+          </div>
+
+          <!-- PAGE: Financeiro -->
+          <div id="page-financeiro" class="page">
+            <div class="page-header">
+              <h2>💰 Financeiro</h2>
+              <div class="page-actions" id="acoes-financeiro"></div>
+            </div>
+            <div id="conteudo-financeiro"></div>
+          </div>
+
+          <!-- PAGE: Estoque -->
+          <div id="page-estoque" class="page">
+            <div class="page-header">
+              <h2>📦 Estoque</h2>
+              <div class="page-actions" id="acoes-estoque"></div>
+            </div>
+            <div id="conteudo-estoque"></div>
+          </div>
+
+          <!-- PAGE: Monitoramento -->
+          <div id="page-monitoramento" class="page">
+            <div class="page-header">
+              <h2>📷 Monitoramento</h2>
+              <div class="page-actions" id="acoes-monitoramento"></div>
+            </div>
+            <div id="conteudo-monitoramento"></div>
+          </div>
+
+          <!-- PAGE: Sistema -->
+          <div id="page-sistema" class="page">
+            <div class="page-header">
+              <h2>⚙️ Sistema</h2>
+              <div class="page-actions" id="acoes-sistema"></div>
+            </div>
+            <div id="conteudo-sistema"></div>
+          </div>
+
+          <!-- PAGE: Cargos -->
+          <div id="page-cargos" class="page">
+            <div class="page-header">
+              <h2>🏢 Cargos e Permissões</h2>
+              <div class="page-actions" id="acoes-cargos"></div>
+            </div>
+            <div id="conteudo-cargos"></div>
+
+            <div id="form-cargo" class="hidden"
+              style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+              <h3 id="form-cargo-titulo">Editar Cargo</h3>
+              <input type="hidden" id="fc-nome-original">
+              <div class="form-row">
+                <label>Nome do Cargo
+                  <input type="text" id="fc-nome" disabled>
+                </label>
+              </div>
+              <div class="form-row">
+                <label style="width: 100%">Descrição
+                  <input type="text" id="fc-desc" placeholder="Descrição do cargo...">
+                </label>
+              </div>
+              <div class="perm-grupos" id="fc-permissoes"></div>
+              <div style="margin-top:18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <button class="btn-primary" onclick="salvarCargo()">💾 Salvar Cargo</button>
+                <button onclick="fecharFormCargo()">Cancelar</button>
+                <span id="fc-err" class="err"></span>
+                <span id="fc-ok" class="ok"></span>
               </div>
             </div>
-            <div class="stat-card glass">
-              <div class="stat-icon" style="background:rgba(251,191,36,0.1);color:#fbbf24">🔑</div>
-              <div class="stat-info">
-                <div class="stat-value" id="stat-permissoes">—</div>
-                <div class="stat-label">Permissões atribuídas</div>
-              </div>
+          </div>
+
+          <!-- PAGE: Perfil -->
+          <div id="page-perfil" class="page">
+            <div class="page-header">
+              <h2>🔑 Alterar Senha</h2>
+            </div>
+            <div class="perfil-form-wrapper">
+              <label>
+                <span>Nova senha</span>
+                <input id="inp-perfil-nova" type="password"
+                  oninput="renderizarCriterios(this.value,'criterios-perfil')">
+              </label>
+              <div id="criterios-perfil" style="margin:4px 0 14px;line-height:1.9;"></div>
+              <label>
+                <span>Confirmar senha</span>
+                <input id="inp-perfil-confirmar" type="password">
+              </label>
+              <button class="btn-primary" onclick="doAlterarSenhaPerfil()" style="margin-top:8px">Salvar</button>
+              <p id="perfil-err" class="err" style="margin-top:8px"></p>
+              <p id="perfil-ok" class="ok" style="margin-top:8px"></p>
             </div>
           </div>
-
-
-        </div>
-
-        <!-- PAGE: Funcionários -->
-        <div id="page-funcionarios" class="page">
-          <div class="page-header">
-            <h2>👥 Funcionários</h2>
-            <div class="page-actions" id="acoes-funcionarios"></div>
-          </div>
-          <div id="conteudo-funcionarios"></div>
-        </div>
-
-        <!-- PAGE: Documentos -->
-        <div id="page-documentos" class="page">
-          <div class="page-header">
-            <h2>📁 Documentos</h2>
-            <div class="page-actions" id="acoes-documentos"></div>
-          </div>
-          <div id="conteudo-documentos"></div>
-        </div>
-
-        <!-- PAGE: Relatórios -->
-        <div id="page-relatorios" class="page">
-          <div class="page-header">
-            <h2>📄 Relatórios</h2>
-            <div class="page-actions" id="acoes-relatorios"></div>
-          </div>
-          <div id="conteudo-relatorios"></div>
-        </div>
-
-        <!-- PAGE: Financeiro -->
-        <div id="page-financeiro" class="page">
-          <div class="page-header">
-            <h2>💰 Financeiro</h2>
-            <div class="page-actions" id="acoes-financeiro"></div>
-          </div>
-          <div id="conteudo-financeiro"></div>
-        </div>
-
-        <!-- PAGE: Estoque -->
-        <div id="page-estoque" class="page">
-          <div class="page-header">
-            <h2>📦 Estoque</h2>
-            <div class="page-actions" id="acoes-estoque"></div>
-          </div>
-          <div id="conteudo-estoque"></div>
-        </div>
-
-        <!-- PAGE: Monitoramento -->
-        <div id="page-monitoramento" class="page">
-          <div class="page-header">
-            <h2>📷 Monitoramento</h2>
-            <div class="page-actions" id="acoes-monitoramento"></div>
-          </div>
-          <div id="conteudo-monitoramento"></div>
-        </div>
-
-        <!-- PAGE: Sistema -->
-        <div id="page-sistema" class="page">
-          <div class="page-header">
-            <h2>⚙️ Sistema</h2>
-            <div class="page-actions" id="acoes-sistema"></div>
-          </div>
-          <div id="conteudo-sistema"></div>
 
           <!-- Sub: criar/editar usuário -->
-          <div id="form-usuario" class="hidden">
+          <div id="form-usuario" class="hidden"
+            style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
             <h3 id="form-usuario-titulo">Novo usuário</h3>
             <input type="hidden" id="form-usuario-id">
             <div class="form-row">
@@ -275,47 +340,25 @@
               <button class="btn-primary" onclick="salvarUsuario()">💾 Salvar</button>
               <button onclick="fecharFormUsuario()">Cancelar</button>
               <span id="fu-err" class="err"></span>
-              <span id="fu-ok"  class="ok"></span>
+              <span id="fu-ok" class="ok"></span>
             </div>
           </div>
-        </div>
 
-        <!-- PAGE: Perfil -->
-        <div id="page-perfil" class="page">
-          <div class="page-header">
-            <h2>🔑 Alterar Senha</h2>
-          </div>
-          <div class="perfil-form-wrapper">
-            <label>
-              <span>Nova senha</span>
-              <input id="inp-perfil-nova" type="password"
-                     oninput="renderizarCriterios(this.value,'criterios-perfil')">
-            </label>
-            <div id="criterios-perfil" style="margin:4px 0 14px;line-height:1.9;"></div>
-            <label>
-              <span>Confirmar senha</span>
-              <input id="inp-perfil-confirmar" type="password">
-            </label>
-            <button class="btn-primary" onclick="doAlterarSenhaPerfil()" style="margin-top:8px">Salvar</button>
-            <p id="perfil-err" class="err" style="margin-top:8px"></p>
-            <p id="perfil-ok"  class="ok"  style="margin-top:8px"></p>
-          </div>
-        </div>
+        </main>
+      </div>
 
-      </main>
-    </div>
+    </div><!-- fim tela-app -->
 
-  </div><!-- fim tela-app -->
+  </div><!-- fim app-wrapper -->
 
-</div><!-- fim app-wrapper -->
+  <!-- Sidebar overlay for mobile -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
-<!-- Sidebar overlay for mobile -->
-<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase.js"></script>
-<script src="senha.js"></script>
-<script src="auth.js"></script>
-<script src="app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="senha.js"></script>
+  <script src="auth.js"></script>
+  <script src="app.js"></script>
 </body>
+
 </html>
