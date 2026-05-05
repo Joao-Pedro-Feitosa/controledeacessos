@@ -23,110 +23,33 @@ const LISTA_FUNCIONARIOS = [
 ];
 
 // ============================================================
-// PERMISSÕES POR CARGO (pré-sets para o formulário de criação)
+// DESCRIÇÕES DOS PAPÉIS (apenas para exibição no formulário)
+// As permissões reais vêm da tabela rbac_permissoes no Supabase.
 // ============================================================
-const CARGOS_PRESETS = {
-  "Coordenadora": {
-    desc: "Supervisiona equipes, aprova processos e acompanha indicadores.",
-    funcoes: [
-      "ver_funcionarios","cadastrar_funcionario","editar_funcionario","ver_escala","editar_escala",
-      "ver_documentos","upload_documento","alterar_documento","assinar_documento",
-      "ver_relatorios","gerar_relatorio","exportar_relatorio",
-      "ver_financeiro","aprovar_despesa",
-      "ver_cameras","ver_historico_acesso",
-    ]
-  },
-  "Gerente": {
-    desc: "Gestão completa da operação. Acesso total ao sistema.",
-    funcoes: [
-      "ver_funcionarios","cadastrar_funcionario","editar_funcionario","desligar_funcionario","ver_escala","editar_escala",
-      "ver_documentos","upload_documento","alterar_documento","excluir_documento","assinar_documento",
-      "ver_relatorios","gerar_relatorio","exportar_relatorio",
-      "ver_financeiro","aprovar_despesa","realizar_pagamento","ver_folha_pagamento","fechar_caixa",
-      "ver_estoque","entrada_mercadoria","saida_mercadoria","ajustar_estoque","solicitar_reposicao","inventario",
-      "acesso_redes","ver_logs","config_sistema","criar_usuario","editar_permissoes",
-      "ver_cameras","monitorar_ao_vivo","ver_historico_acesso","ver_localizacao","exportar_monitoramento",
-    ]
-  },
-  "Analista de Estoque": {
-    desc: "Controla entradas, saídas e inventário. Emite relatórios de movimentação.",
-    funcoes: [
-      "ver_documentos","upload_documento",
-      "ver_relatorios","gerar_relatorio","exportar_relatorio",
-      "ver_estoque","entrada_mercadoria","saida_mercadoria","ajustar_estoque","solicitar_reposicao","inventario",
-    ]
-  },
-  "Analista de RH": {
-    desc: "Gerencia admissões, demissões, documentação e folha de pagamento.",
-    funcoes: [
-      "ver_funcionarios","cadastrar_funcionario","editar_funcionario","desligar_funcionario","ver_escala","editar_escala",
-      "ver_documentos","upload_documento","alterar_documento",
-      "ver_relatorios","gerar_relatorio","exportar_relatorio",
-      "ver_folha_pagamento",
-    ]
-  },
-  "Analista de TI": {
-    desc: "Mantém infraestrutura, configura o sistema e monitora logs e acessos.",
-    funcoes: [
-      "ver_funcionarios",
-      "ver_relatorios",
-      // SEGURANÇA: criar_usuario e editar_permissoes removidos — escopo técnico, sem gestão de contas
-      "acesso_redes","ver_logs","config_sistema",
-      "ver_cameras","monitorar_ao_vivo","ver_historico_acesso","ver_localizacao","exportar_monitoramento",
-    ]
-  },
+const CARGOS_DESCS = {
+  "Administrador":      "Acesso total ao sistema.",
+  "Gerente":            "Gestão completa da operação. Acesso total ao sistema.",
+  "Coordenadora":       "Supervisiona equipes, aprova processos e acompanha indicadores.",
+  "Analista de RH":     "Gerencia admissões, demissões, documentação e folha de pagamento.",
+  "Analista de Estoque":"Controla entradas, saídas e inventário. Emite relatórios de movimentação.",
+  "Analista de TI":     "Mantém infraestrutura, configura o sistema e monitora logs e acessos.",
 };
 
-// ============================================================
-// SEGURANÇA: mapa de permissões sensíveis e os cargos que podem tê-las
-// Usado para filtrar tanto a exibição quanto a persistência no banco.
-// ============================================================
-const PERMISSOES_RESTRITAS = {
-  "criar_usuario":     ["Gerente", "Coordenadora", "Analista de RH"],
-  "editar_permissoes": ["Gerente", "Coordenadora", "Analista de RH"],
-};
+// Cache dos papéis carregados do banco (populado em carregarPapeis())
+window.papeisList = [];
 
 /**
- * Filtra uma lista de funcoes removendo as restritas cujo cargo
- * não está autorizado. cargo=null/undefined = admin, passa tudo.
+ * Carrega os papéis da tabela `papeis` no Supabase e popula o
+ * <select id="fu-cargo"> dinamicamente.
+ * Substitui as <option> hardcoded do HTML.
  */
-function filtrarPermissoesPorCargo(funcoes, cargo) {
-  return funcoes.filter(f => {
-    const autorizados = PERMISSOES_RESTRITAS[f];
-    if (!autorizados) return true;          // permissão não é restrita
-    if (!cargo) return true;               // admin sem cargo: passa tudo
-    return autorizados.includes(cargo);
-  });
-}
-
-/**
- * Limpa registros corrompidos no banco: remove permissões sensíveis
- * de usuários cujos cargos não as deveriam ter.
- * Chamar uma vez no console do admin: await limparPermissoesCorrompidas()
- */
-async function limparPermissoesCorrompidas() {
-  const permissoesSensiveis = Object.keys(PERMISSOES_RESTRITAS);
-  const { data: usuarios } = await db.from("usuarios").select("id, cargo");
-
-  let removidos = 0;
-  for (const u of (usuarios || [])) {
-    const permNaoAutorizadas = permissoesSensiveis.filter(p => {
-      const autorizados = PERMISSOES_RESTRITAS[p];
-      return u.cargo && !autorizados.includes(u.cargo);
-    });
-    if (permNaoAutorizadas.length) {
-      for (const perm of permNaoAutorizadas) {
-        const { error } = await db
-          .from("permissoes_usuario")
-          .delete()
-          .eq("usuario_id", u.id)
-          .eq("funcao", perm);
-        if (!error) removidos++;
-      }
-    }
-  }
-  console.log(`✅ Limpeza concluída: ${removidos} registro(s) corrompido(s) removido(s).`);
-  return removidos;
+async function carregarPapeis() {
+  const { data } = await db.from("papeis").select("id, nome").order("id");
+  window.papeisList = data || [];
+  const select = document.getElementById("fu-cargo");
+  if (!select) return;
+  select.innerHTML = `<option value="">— selecione —</option>` +
+    (data || []).map(p => `<option value="${p.id}">${p.nome}</option>`).join("");
 }
 
 // ============================================================
@@ -412,6 +335,7 @@ function carregarSistema() {
 
   if (pode("criar_usuario") || pode("editar_permissoes")) {
     carregarListaUsuarios();
+    carregarPapeis(); // popula o <select> de cargo a partir da tabela papeis
   }
 }
 
@@ -474,29 +398,35 @@ async function editarUsuario(id) {
   document.getElementById("fu-err").textContent = "";
   document.getElementById("fu-ok").textContent  = "";
 
-  const { data: u } = await db.from("usuarios").select("username,cargo").eq("id", id).single();
-  const { data: perms } = await db.from("permissoes_usuario").select("funcao").eq("usuario_id", id).eq("permitido", true);
+  const { data: u } = await db.from("usuarios").select("username,cargo,papel_id").eq("id", id).single();
+  const [{ data: rbacPerms }, { data: aclPerms }] = await Promise.all([
+    db.from("rbac_permissoes").select("funcao").eq("papel_id", u.papel_id),
+    db.from("permissoes_usuario").select("funcao,permitido").eq("usuario_id", id),
+  ]);
 
   document.getElementById("fu-username").value = u.username;
-  document.getElementById("fu-cargo").value    = u.cargo || "";
+  document.getElementById("fu-cargo").value    = u.papel_id || "";
   document.getElementById("fu-senha").value    = "";
 
-  const mapa = {};
-  (perms || []).forEach(({ funcao }) => { mapa[funcao] = true; });
+  // Camada 1: base RBAC
+  const baseMapa = {};
+  (rbacPerms || []).forEach(({ funcao }) => { baseMapa[funcao] = true; });
 
-  // SEGURANÇA: filtra permissões restritas que não devem aparecer
-  // marcadas para este cargo, mesmo que existam no banco (dados corrompidos).
-  const funcoesFiltradas = filtrarPermissoesPorCargo(Object.keys(mapa), u.cargo);
-  const mapaFiltrado = Object.fromEntries(funcoesFiltradas.map(f => [f, true]));
-  renderFormPermissoes(mapaFiltrado);
+  // Camada 2: overrides ACL
+  const overrideMapa = {};
+  const finalMapa = { ...baseMapa };
+  (aclPerms || []).forEach(({ funcao, permitido }) => {
+    overrideMapa[funcao] = permitido ? "grant" : "deny";
+    if (permitido) finalMapa[funcao] = true;
+    else delete finalMapa[funcao];
+  });
+
+  renderFormPermissoes(finalMapa, baseMapa, overrideMapa);
 
   const desc = document.getElementById("fu-cargo-desc");
-  if (u.cargo && CARGOS_PRESETS[u.cargo]) {
-    desc.textContent = CARGOS_PRESETS[u.cargo].desc;
-    desc.classList.remove("hidden");
-  } else {
-    desc.classList.add("hidden");
-  }
+  const descTexto = CARGOS_DESCS[u.cargo];
+  if (descTexto) { desc.textContent = descTexto; desc.classList.remove("hidden"); }
+  else { desc.classList.add("hidden"); }
 
   document.getElementById("form-usuario").classList.remove("hidden");
   document.getElementById("form-usuario").scrollIntoView({ behavior: "smooth" });
@@ -506,38 +436,71 @@ function fecharFormUsuario() {
   document.getElementById("form-usuario").classList.add("hidden");
 }
 
-function aplicarCargo(cargo) {
+async function aplicarCargo(papelId) {
   const desc = document.getElementById("fu-cargo-desc");
-  if (!cargo || !CARGOS_PRESETS[cargo]) {
+  if (!papelId) {
     desc.classList.add("hidden");
     renderFormPermissoes({});
     document.getElementById("fu-senha").value = "";
     return;
   }
-  const preset = CARGOS_PRESETS[cargo];
-  desc.textContent = preset.desc;
-  desc.classList.remove("hidden");
+  papelId = parseInt(papelId);
 
-  const mapa = {};
-  preset.funcoes.forEach(f => { mapa[f] = true; });
-  renderFormPermissoes(mapa);
+  // Busca permissões base do papel diretamente do banco (RBAC)
+  const { data: basePerms } = await db
+    .from("rbac_permissoes")
+    .select("funcao")
+    .eq("papel_id", papelId);
 
-  const base = cargo.split(" ")[0].replace(/[^a-zA-Z]/g, "");
-  document.getElementById("fu-senha").value =
-    base.charAt(0).toUpperCase() + base.slice(1).toLowerCase() + "@2025!";
+  const baseMapa = {};
+  (basePerms || []).forEach(({ funcao }) => { baseMapa[funcao] = true; });
+
+  // Exibe descrição do papel
+  const papel = window.papeisList.find(p => p.id === papelId);
+  const descTexto = papel ? CARGOS_DESCS[papel.nome] : null;
+  if (descTexto) { desc.textContent = descTexto; desc.classList.remove("hidden"); }
+  else { desc.classList.add("hidden"); }
+
+  // Renderiza com permissões RBAC pré-marcadas (sem overrides ainda)
+  renderFormPermissoes(baseMapa, baseMapa, {});
+
+  // Senha provisória baseada no nome do papel
+  if (papel) {
+    const base = papel.nome.split(" ")[0].replace(/[^a-zA-Z]/g, "");
+    document.getElementById("fu-senha").value =
+      base.charAt(0).toUpperCase() + base.slice(1).toLowerCase() + "@2025!";
+  }
 }
 
-function renderFormPermissoes(marcadas) {
+/**
+ * Renderiza os checkboxes de permissões com indicações visuais de camada:
+ *  - Sem badge  : permissão normal do papel (RBAC)
+ *  - ▲ ACL GRANT: concedida individualmente além do papel
+ *  - ▼ ACL DENY : negada individualmente, mesmo que o papel tenha
+ */
+function renderFormPermissoes(marcadas, baseMapa = {}, overrideMapa = {}) {
   const el = document.getElementById("fu-permissoes");
   el.innerHTML = Object.entries(FUNCOES_GRUPOS).map(([grupo, funcoes]) => `
     <div class="perm-grupo">
       <h4>${grupo}</h4>
-      ${funcoes.map(f => `
-        <label>
-          <input type="checkbox" name="perm" value="${f.key}" ${marcadas[f.key] ? "checked" : ""}>
-          ${f.label}
-        </label>
-      `).join("")}
+      ${funcoes.map(f => {
+        const isChecked    = !!marcadas[f.key];
+        const isBase       = !!baseMapa[f.key];
+        const overrideType = overrideMapa[f.key];
+        let badge = "";
+        if (overrideType === "grant") {
+          badge = ` <span style="color:#34d399;font-size:.72em" title="Concedido individualmente (ACL GRANT)">&#9650; ACL</span>`;
+        } else if (overrideType === "deny") {
+          badge = ` <span style="color:#f87171;font-size:.72em" title="Negado individualmente (ACL DENY)">&#9660; ACL</span>`;
+        } else if (isBase) {
+          badge = ` <span style="color:#a78bfa;font-size:.72em" title="Permissão do papel (RBAC)">&#9679; RBAC</span>`;
+        }
+        return `
+          <label>
+            <input type="checkbox" name="perm" value="${f.key}" ${isChecked ? "checked" : ""}>
+            ${f.label}${badge}
+          </label>`;
+      }).join("")}
     </div>
   `).join("");
 }
@@ -546,13 +509,12 @@ async function salvarUsuario() {
   const id       = document.getElementById("form-usuario-id").value;
   const username = document.getElementById("fu-username").value.trim();
   const senha    = document.getElementById("fu-senha").value.trim();
-  const cargo    = document.getElementById("fu-cargo").value;
+  const papelId  = parseInt(document.getElementById("fu-cargo").value);
   const errEl    = document.getElementById("fu-err");
   const okEl     = document.getElementById("fu-ok");
   errEl.textContent = ""; okEl.textContent = "";
 
-  // SEGURANÇA (Falha #3): revalidar permissão no momento da execução,
-  // impedindo bypass via chamada direta no console ou manipulação do DOM.
+  // Guard de segurança: revalida permissão no momento da execução
   if (id && !pode("editar_permissoes")) {
     errEl.textContent = "⛔ Permissão negada: você não pode editar usuários.";
     return;
@@ -563,51 +525,59 @@ async function salvarUsuario() {
   }
 
   if (!username) { errEl.textContent = "Informe o nome de usuário."; return; }
-  if (!cargo)    { errEl.textContent = "Selecione um cargo."; return; }
+  if (!papelId)  { errEl.textContent = "Selecione um cargo."; return; }
   if (!id && !senha) { errEl.textContent = "Informe a senha provisória."; return; }
 
-  const funcoesMarcadas = filtrarPermissoesPorCargo(
-    [...document.querySelectorAll("input[name=perm]:checked")].map(c => c.value),
-    cargo
-  );
-  // SEGURANÇA: permissões restritas para o cargo são silenciosamente removidas
-  // antes de qualquer escrita no banco, mesmo que o checkbox esteja marcado.
+  const papel = window.papeisList.find(p => p.id === papelId);
+  const cargo = papel?.nome || "";
+
+  // Busca permissões base do papel para calcular apenas os overrides
+  const { data: basePerms } = await db.from("rbac_permissoes").select("funcao").eq("papel_id", papelId);
+  const baseSet = new Set((basePerms || []).map(p => p.funcao));
+
+  // Permissões marcadas no formulário
+  const allFuncoes  = Object.values(FUNCOES_GRUPOS).flat().map(f => f.key);
+  const checkedSet  = new Set([...document.querySelectorAll("input[name=perm]:checked")].map(c => c.value));
+
+  // Calcula overrides: só salva o que DIFERE da base RBAC
+  // Sem diferença = nenhuma linha gravada (escalabilidade RBAC)
+  const overrides = [];
+  allFuncoes.forEach(f => {
+    const inBase    = baseSet.has(f);
+    const isChecked = checkedSet.has(f);
+    if (isChecked && !inBase)  overrides.push({ funcao: f, permitido: true });  // ACL GRANT
+    if (!isChecked && inBase)  overrides.push({ funcao: f, permitido: false }); // ACL DENY
+  });
+
+  let userId = id ? parseInt(id) : null;
 
   if (id) {
-    // Editar
-    const updates = { cargo };
+    const updates = { cargo, papel_id: papelId };
     if (senha) updates.senha = senha;
-
     const { error } = await db.from("usuarios").update(updates).eq("id", id);
     if (error) { errEl.textContent = "Erro ao atualizar usuário."; return; }
-
-    await db.from("permissoes_usuario").delete().eq("usuario_id", id);
-    if (funcoesMarcadas.length) {
-      await db.from("permissoes_usuario").insert(
-        funcoesMarcadas.map(f => ({ usuario_id: parseInt(id), funcao: f, permitido: true }))
-      );
-    }
     okEl.textContent = "Usuário atualizado!";
   } else {
-    // Criar
     const { data: novoUser, error } = await db
       .from("usuarios")
-      .insert({ username, senha, cargo, ativo: true, primeiro_login: true })
+      .insert({ username, senha, cargo, papel_id: papelId, ativo: true, primeiro_login: true })
       .select("id")
       .single();
-
     if (error) {
       errEl.textContent = error.message.includes("unique")
         ? "Esse nome de usuário já existe." : "Erro ao criar usuário.";
       return;
     }
-
-    if (funcoesMarcadas.length) {
-      await db.from("permissoes_usuario").insert(
-        funcoesMarcadas.map(f => ({ usuario_id: novoUser.id, funcao: f, permitido: true }))
-      );
-    }
+    userId = novoUser.id;
     okEl.textContent = "Usuário criado com sucesso!";
+  }
+
+  // Salva overrides (apaga anteriores e insere os novos)
+  await db.from("permissoes_usuario").delete().eq("usuario_id", userId);
+  if (overrides.length) {
+    await db.from("permissoes_usuario").insert(
+      overrides.map(o => ({ usuario_id: userId, funcao: o.funcao, permitido: o.permitido }))
+    );
   }
 
   setTimeout(() => { fecharFormUsuario(); carregarListaUsuarios(); }, 1200);
