@@ -78,6 +78,58 @@ const CARGOS_PRESETS = {
 };
 
 // ============================================================
+// SEGURANÇA: mapa de permissões sensíveis e os cargos que podem tê-las
+// Usado para filtrar tanto a exibição quanto a persistência no banco.
+// ============================================================
+const PERMISSOES_RESTRITAS = {
+  "criar_usuario":     ["Gerente", "Coordenadora", "Analista de RH"],
+  "editar_permissoes": ["Gerente", "Coordenadora", "Analista de RH"],
+};
+
+/**
+ * Filtra uma lista de funcoes removendo as restritas cujo cargo
+ * não está autorizado. cargo=null/undefined = admin, passa tudo.
+ */
+function filtrarPermissoesPorCargo(funcoes, cargo) {
+  return funcoes.filter(f => {
+    const autorizados = PERMISSOES_RESTRITAS[f];
+    if (!autorizados) return true;          // permissão não é restrita
+    if (!cargo) return true;               // admin sem cargo: passa tudo
+    return autorizados.includes(cargo);
+  });
+}
+
+/**
+ * Limpa registros corrompidos no banco: remove permissões sensíveis
+ * de usuários cujos cargos não as deveriam ter.
+ * Chamar uma vez no console do admin: await limparPermissoesCorrompidas()
+ */
+async function limparPermissoesCorrompidas() {
+  const permissoesSensiveis = Object.keys(PERMISSOES_RESTRITAS);
+  const { data: usuarios } = await db.from("usuarios").select("id, cargo");
+
+  let removidos = 0;
+  for (const u of (usuarios || [])) {
+    const permNaoAutorizadas = permissoesSensiveis.filter(p => {
+      const autorizados = PERMISSOES_RESTRITAS[p];
+      return u.cargo && !autorizados.includes(u.cargo);
+    });
+    if (permNaoAutorizadas.length) {
+      for (const perm of permNaoAutorizadas) {
+        const { error } = await db
+          .from("permissoes_usuario")
+          .delete()
+          .eq("usuario_id", u.id)
+          .eq("funcao", perm);
+        if (!error) removidos++;
+      }
+    }
+  }
+  console.log(`✅ Limpeza concluída: ${removidos} registro(s) corrompido(s) removido(s).`);
+  return removidos;
+}
+
+// ============================================================
 // TODAS AS FUNÇÕES AGRUPADAS (para o formulário de criação)
 // ============================================================
 const FUNCOES_GRUPOS = {
@@ -431,7 +483,12 @@ async function editarUsuario(id) {
 
   const mapa = {};
   (perms || []).forEach(({ funcao }) => { mapa[funcao] = true; });
-  renderFormPermissoes(mapa);
+
+  // SEGURANÇA: filtra permissões restritas que não devem aparecer
+  // marcadas para este cargo, mesmo que existam no banco (dados corrompidos).
+  const funcoesFiltradas = filtrarPermissoesPorCargo(Object.keys(mapa), u.cargo);
+  const mapaFiltrado = Object.fromEntries(funcoesFiltradas.map(f => [f, true]));
+  renderFormPermissoes(mapaFiltrado);
 
   const desc = document.getElementById("fu-cargo-desc");
   if (u.cargo && CARGOS_PRESETS[u.cargo]) {
@@ -509,8 +566,12 @@ async function salvarUsuario() {
   if (!cargo)    { errEl.textContent = "Selecione um cargo."; return; }
   if (!id && !senha) { errEl.textContent = "Informe a senha provisória."; return; }
 
-  const funcoesMarcadas = [...document.querySelectorAll("input[name=perm]:checked")]
-    .map(c => c.value);
+  const funcoesMarcadas = filtrarPermissoesPorCargo(
+    [...document.querySelectorAll("input[name=perm]:checked")].map(c => c.value),
+    cargo
+  );
+  // SEGURANÇA: permissões restritas para o cargo são silenciosamente removidas
+  // antes de qualquer escrita no banco, mesmo que o checkbox esteja marcado.
 
   if (id) {
     // Editar
