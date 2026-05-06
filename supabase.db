@@ -1,161 +1,45 @@
--- ============================================================
--- SCHEMA: Controle de Acesso Híbrido (RBAC + ACL)
--- Sistema de Gestão de Empresa — versão reestruturada
---
--- ARQUITETURA:
---   RBAC → tabelas: papeis + rbac_permissoes
---          Usuário pertence a um papel; o papel define permissões base.
---          Nenhuma linha extra em permissoes_usuario ao criar usuário.
---
---   ACL  → tabela: permissoes_usuario
---          Overrides individuais sobre a base RBAC.
---          permitido = TRUE  → GRANT (concede mesmo que o papel não tenha)
---          permitido = FALSE → DENY  (nega mesmo que o papel tenha)
---
--- Senha em texto puro para fins de demonstração.
--- ============================================================
+-- Limpa estrutura antiga se existir
+DROP TABLE IF EXISTS permissoes_usuario CASCADE;
+DROP TABLE IF EXISTS usuarios CASCADE;
 
--- 1. PAPÉIS (RBAC — identidade do usuário no sistema)
-CREATE TABLE papeis (
-  id   SERIAL PRIMARY KEY,
-  nome VARCHAR(50) UNIQUE NOT NULL
-);
-
-INSERT INTO papeis (nome) VALUES
-  ('Administrador'),       -- id 1
-  ('Gerente'),             -- id 2
-  ('Coordenadora'),        -- id 3
-  ('Analista de RH'),      -- id 4
-  ('Analista de Estoque'), -- id 5
-  ('Analista de TI');      -- id 6
-
-
--- 2. RECURSOS (usados pelo RBAC genérico — mantido por compatibilidade)
-CREATE TABLE recursos (
-  id   SERIAL PRIMARY KEY,
-  nome VARCHAR(50) UNIQUE NOT NULL
-);
-
-INSERT INTO recursos (nome) VALUES
-  ('funcionarios'),
-  ('relatorios'),
-  ('financeiro'),
-  ('config');
-
-
--- 3. USUÁRIOS
+-- Usuários
 CREATE TABLE usuarios (
-  id             SERIAL PRIMARY KEY,
-  username       VARCHAR(50) UNIQUE NOT NULL,
-  senha          TEXT NOT NULL,
-  papel_id       INTEGER NOT NULL REFERENCES papeis(id),
-  cargo          VARCHAR(50),          -- espelho de papeis.nome (display)
-  primeiro_login BOOLEAN DEFAULT FALSE,
-  ativo          BOOLEAN DEFAULT TRUE,
-  criado_em      TIMESTAMP DEFAULT NOW()
+  id            SERIAL PRIMARY KEY,
+  username      VARCHAR(50) UNIQUE NOT NULL,
+  senha         TEXT NOT NULL,
+  cargo         VARCHAR(50),
+  ativo         BOOLEAN DEFAULT TRUE,
+  primeiro_login BOOLEAN DEFAULT TRUE,
+  criado_em     TIMESTAMP DEFAULT NOW()
 );
 
-INSERT INTO usuarios (username, senha, papel_id, cargo, primeiro_login) VALUES
-  ('admin',        'Admin@123456',    1, 'Administrador',       FALSE),
-  ('gerente',      'Gerente@123456',  2, 'Gerente',             FALSE),
-  ('coordenadora', 'Coord@123456',    3, 'Coordenadora',        FALSE),
-  ('analista_rh',  'RH@1234567',      4, 'Analista de RH',      FALSE),
-  ('funcionario',  'Func@1234567',    5, 'Analista de Estoque', FALSE),
-  ('analista_ti',  'Ti@12345678',     6, 'Analista de TI',      FALSE);
-
-
--- 4. PERMISSÕES POR PAPEL — RBAC
---    Formato: papel_id + funcao (string descritiva, igual ao JS)
---    Ao criar novo usuário, NENHUMA linha é inserida aqui — ele herda do papel.
-CREATE TABLE rbac_permissoes (
-  id       SERIAL PRIMARY KEY,
-  papel_id INTEGER NOT NULL REFERENCES papeis(id) ON DELETE CASCADE,
-  funcao   VARCHAR(80) NOT NULL,
-  UNIQUE (papel_id, funcao)
-);
-
--- Administrador: tudo
-INSERT INTO rbac_permissoes (papel_id, funcao) VALUES
-  (1,'ver_funcionarios'),(1,'cadastrar_funcionario'),(1,'editar_funcionario'),
-  (1,'desligar_funcionario'),(1,'ver_escala'),(1,'editar_escala'),
-  (1,'ver_documentos'),(1,'upload_documento'),(1,'alterar_documento'),
-  (1,'excluir_documento'),(1,'assinar_documento'),
-  (1,'ver_relatorios'),(1,'gerar_relatorio'),(1,'exportar_relatorio'),
-  (1,'ver_financeiro'),(1,'aprovar_despesa'),(1,'realizar_pagamento'),
-  (1,'ver_folha_pagamento'),(1,'fechar_caixa'),
-  (1,'ver_estoque'),(1,'entrada_mercadoria'),(1,'saida_mercadoria'),
-  (1,'ajustar_estoque'),(1,'solicitar_reposicao'),(1,'inventario'),
-  (1,'ver_cameras'),(1,'monitorar_ao_vivo'),(1,'ver_historico_acesso'),
-  (1,'ver_localizacao'),(1,'exportar_monitoramento'),
-  (1,'acesso_redes'),(1,'ver_logs'),(1,'config_sistema'),
-  (1,'criar_usuario'),(1,'editar_permissoes');
-
--- Gerente
-INSERT INTO rbac_permissoes (papel_id, funcao) VALUES
-  (2,'ver_funcionarios'),(2,'cadastrar_funcionario'),(2,'editar_funcionario'),
-  (2,'desligar_funcionario'),(2,'ver_escala'),(2,'editar_escala'),
-  (2,'ver_documentos'),(2,'upload_documento'),(2,'alterar_documento'),
-  (2,'excluir_documento'),(2,'assinar_documento'),
-  (2,'ver_relatorios'),(2,'gerar_relatorio'),(2,'exportar_relatorio'),
-  (2,'ver_financeiro'),(2,'aprovar_despesa'),(2,'realizar_pagamento'),
-  (2,'ver_folha_pagamento'),(2,'fechar_caixa'),
-  (2,'ver_estoque'),(2,'entrada_mercadoria'),(2,'saida_mercadoria'),
-  (2,'ajustar_estoque'),(2,'solicitar_reposicao'),(2,'inventario'),
-  (2,'ver_cameras'),(2,'monitorar_ao_vivo'),(2,'ver_historico_acesso'),
-  (2,'ver_localizacao'),(2,'exportar_monitoramento'),
-  (2,'acesso_redes'),(2,'ver_logs'),(2,'config_sistema'),
-  (2,'criar_usuario'),(2,'editar_permissoes');
-
--- Coordenadora
-INSERT INTO rbac_permissoes (papel_id, funcao) VALUES
-  (3,'ver_funcionarios'),(3,'cadastrar_funcionario'),(3,'editar_funcionario'),
-  (3,'ver_escala'),(3,'editar_escala'),
-  (3,'ver_documentos'),(3,'upload_documento'),(3,'alterar_documento'),(3,'assinar_documento'),
-  (3,'ver_relatorios'),(3,'gerar_relatorio'),(3,'exportar_relatorio'),
-  (3,'ver_financeiro'),(3,'aprovar_despesa'),
-  (3,'ver_cameras'),(3,'ver_historico_acesso'),
-  (3,'criar_usuario'),(3,'editar_permissoes');
-
--- Analista de RH
-INSERT INTO rbac_permissoes (papel_id, funcao) VALUES
-  (4,'ver_funcionarios'),(4,'cadastrar_funcionario'),(4,'editar_funcionario'),
-  (4,'desligar_funcionario'),(4,'ver_escala'),(4,'editar_escala'),
-  (4,'ver_documentos'),(4,'upload_documento'),(4,'alterar_documento'),
-  (4,'ver_relatorios'),(4,'gerar_relatorio'),(4,'exportar_relatorio'),
-  (4,'ver_folha_pagamento');
-
--- Analista de Estoque
-INSERT INTO rbac_permissoes (papel_id, funcao) VALUES
-  (5,'ver_documentos'),(5,'upload_documento'),
-  (5,'ver_relatorios'),(5,'gerar_relatorio'),(5,'exportar_relatorio'),
-  (5,'ver_estoque'),(5,'entrada_mercadoria'),(5,'saida_mercadoria'),
-  (5,'ajustar_estoque'),(5,'solicitar_reposicao'),(5,'inventario');
-
--- Analista de TI
-INSERT INTO rbac_permissoes (papel_id, funcao) VALUES
-  (6,'ver_funcionarios'),
-  (6,'ver_relatorios'),
-  (6,'acesso_redes'),(6,'ver_logs'),(6,'config_sistema'),
-  (6,'ver_cameras'),(6,'monitorar_ao_vivo'),(6,'ver_historico_acesso'),
-  (6,'ver_localizacao'),(6,'exportar_monitoramento');
-
-
--- 5. OVERRIDES INDIVIDUAIS — ACL
---    Apenas diferenças em relação ao papel base.
---    permitido = TRUE  → ACL GRANT (permissão extra além do papel)
---    permitido = FALSE → ACL DENY  (remoção de permissão do papel)
---
---    Exemplo: Analista de RH que também pode aprovar despesas:
---    INSERT INTO permissoes_usuario (usuario_id, funcao, permitido) VALUES (4, 'aprovar_despesa', TRUE);
---
---    Exemplo: Gerente sem acesso a fechar caixa:
---    INSERT INTO permissoes_usuario (usuario_id, funcao, permitido) VALUES (2, 'fechar_caixa', FALSE);
+-- Permissões granulares por usuário
 CREATE TABLE permissoes_usuario (
-  id         SERIAL PRIMARY KEY,
-  usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
-  funcao     VARCHAR(80) NOT NULL,
-  permitido  BOOLEAN NOT NULL DEFAULT TRUE,
+  id          SERIAL PRIMARY KEY,
+  usuario_id  INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  funcao      VARCHAR(60) NOT NULL,
+  permitido   BOOLEAN DEFAULT TRUE,
   UNIQUE (usuario_id, funcao)
 );
 
--- (sem overrides iniciais — todos usam apenas o papel base)
+-- Usuário admin inicial
+INSERT INTO usuarios (username, senha, cargo, primeiro_login) VALUES
+  ('admin', 'Admin@123456', 'Gerente', FALSE);
+
+-- Admin recebe todas as funções
+INSERT INTO permissoes_usuario (usuario_id, funcao)
+SELECT 1, f FROM UNNEST(ARRAY[
+  'ver_funcionarios','cadastrar_funcionario','editar_funcionario',
+  'desligar_funcionario','ver_escala','editar_escala',
+  'ver_documentos','upload_documento','alterar_documento',
+  'excluir_documento','assinar_documento',
+  'ver_relatorios','gerar_relatorio','exportar_relatorio',
+  'ver_financeiro','aprovar_despesa','realizar_pagamento',
+  'ver_folha_pagamento','fechar_caixa',
+  'ver_estoque','entrada_mercadoria','saida_mercadoria',
+  'ajustar_estoque','solicitar_reposicao','inventario',
+  'acesso_redes','ver_logs','config_sistema',
+  'criar_usuario','editar_permissoes',
+  'ver_cameras','monitorar_ao_vivo','ver_historico_acesso',
+  'ver_localizacao','exportar_monitoramento'
+]) AS f;
